@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>دفاتر مصاريف وإيرادات الوالد</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ================= التطبيق ================= -->
+  <div id="appView">
+    <header class="topbar">
+      <div class="topbar-right">
+        <button id="homeBtn" class="icon-btn">☰<span class="lbl"> الفواتير</span></button>
+        <span class="app-name">دفاتر الوالد</span>
+      </div>
+      <div class="topbar-left">
+        <div class="add-wrap">
+          <button id="addBtn" class="btn-primary" aria-haspopup="true" aria-expanded="false">
+            <span class="plus">+</span><span class="lbl"> معاملة جديدة</span> <span class="caret">▾</span>
+          </button>
+          <div id="addMenu" class="menu" hidden role="menu">
+            <button data-type="lower" role="menuitem"><span class="dot exp"></span> فاتورة البيت الأسفل</button>
+            <button data-type="upper" role="menuitem"><span class="dot exp"></span> فاتورة البيت الأعلى</button>
+            <button data-type="rev"   role="menuitem"><span class="dot rev"></span> فاتورة الإيرادات</button>
+            <button data-type="other" role="menuitem"><span class="dot grn"></span> معاملات أخرى</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- قائمة الفواتير -->
+    <main id="listView" class="list-view">
+      <div class="list-head"><h2>قائمة الفواتير</h2></div>
+      <div id="invoiceGrid" class="invoice-grid"></div>
+      <div id="emptyState" class="empty-state" hidden>
+        <div class="empty-illu">📄</div>
+        <p class="empty-title">لا توجد فواتير بعد</p>
+        <p class="empty-hint">اضغط الزر بالأسفل لإنشاء أول فاتورة.</p>
+        <button class="btn-primary" id="emptyAddBtn"><span class="plus">+</span> أنشئ فاتورة جديدة</button>
+      </div>
+    </main>
+
+    <!-- عرض فاتورة واحدة -->
+    <main id="invoiceView" class="invoice-view" hidden>
+      <div class="invoice-toolbar">
+        <button id="backBtn" class="btn-ghost">→ رجوع للقائمة</button>
+        <div class="invoice-meta">
+          <label class="meta-pick">الشهر:
+            <select id="invMonth" aria-label="الشهر"></select>
+            <select id="invYear" aria-label="السنة"></select>
+          </label>
+          <button id="printInvBtn" class="btn-ghost">🖨 طباعة</button>
+          <button id="deleteInvBtn" class="btn-danger">🗑 حذف الفاتورة</button>
+        </div>
+      </div>
+      <section id="sheetMount" class="sheet"></section>
+    </main>
+  </div>
+
+  <!-- ================= نافذة تأكيد الحذف (أحمر) ================= -->
+  <div class="modal-overlay" id="confirmOverlay" hidden>
+    <div class="modal confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <div class="modal-head danger"><h2 id="confirmTitle">تأكيد الحذف</h2></div>
+      <div class="confirm-body">
+        <div class="warn-icon">⚠️</div>
+        <p id="confirmText">سيتم حذف هذه الفاتورة نهائيًا، ولا يمكن التراجع عن هذا الإجراء.</p>
+      </div>
+      <div class="modal-foot">
+        <button type="button" id="confirmCancel" class="btn-ghost">إلغاء</button>
+        <button type="button" id="confirmDelete" class="btn-danger">نعم، احذف نهائيًا</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

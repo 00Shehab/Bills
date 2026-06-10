@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>نظام المحطة المالي</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ================= شاشة الدخول (كلمة السر) ================= -->
+  <div id="loginView" class="auth-view" hidden>
+    <div class="auth-card">
+      <div class="auth-logo">🔐</div>
+      <h1>نظام المحطة المالي</h1>
+      <p class="auth-sub">أدخل كلمة السر للمتابعة</p>
+      <form id="loginForm" autocomplete="off">
+        <input id="passInput" type="password" placeholder="كلمة السر" required />
+        <button type="submit" class="btn-primary block" id="loginBtn">دخول</button>
+        <p class="auth-error" id="loginError" hidden></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= اختيار الهوية ================= -->
+  <div id="pickView" class="auth-view" hidden>
+    <div class="auth-card">
+      <div class="auth-logo">👤</div>
+      <h1>اختر اسمك</h1>
+      <p class="auth-sub">ستُنسب كل عملية تقوم بها إلى هذا الاسم</p>
+      <div id="userButtons" class="user-buttons"></div>
+      <button class="link-btn" id="backToLogin">رجوع</button>
+    </div>
+  </div>
+
+  <!-- ================= التطبيق المشترك ================= -->
+  <div id="appView" hidden>
+    <header class="topbar">
+      <div class="topbar-right">
+        <button id="homeBtn" class="icon-btn">☰<span class="lbl"> الفواتير</span></button>
+        <span class="app-name">دفاتر المحطة</span>
+      </div>
+      <div class="topbar-left">
+        <div class="add-wrap">
+          <button id="addBtn" class="btn-primary" aria-haspopup="true" aria-expanded="false">
+            <span class="plus">+</span><span class="lbl"> معاملة جديدة</span> <span class="caret">▾</span>
+          </button>
+          <div id="addMenu" class="menu" hidden role="menu">
+            <button data-type="lower" role="menuitem"><span class="dot exp"></span> فاتورة البيت الأسفل</button>
+            <button data-type="upper" role="menuitem"><span class="dot exp"></span> فاتورة البيت الأعلى</button>
+            <button data-type="rev"   role="menuitem"><span class="dot rev"></span> فاتورة الإيرادات</button>
+            <button data-type="other" role="menuitem"><span class="dot grn"></span> معاملات أخرى</button>
+          </div>
+        </div>
+
+        <!-- الجرس (يُفعّل في مرحلة لاحقة) -->
+        <div class="bell-wrap">
+          <button id="bellBtn" class="icon-btn bell" aria-label="التنبيهات">
+            🔔<span id="bellCount" class="bell-count" hidden>0</span>
+          </button>
+          <div id="bellMenu" class="menu bell-menu" hidden role="menu"></div>
+        </div>
+
+        <div class="user-box">
+          <span id="currentUser" class="current-user"></span>
+          <button id="logoutBtn" class="icon-btn small">خروج</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="appMain"></main>
+  </div>
+
+  <!-- ================= لوحة الأدمن (تُبنى لاحقًا) ================= -->
+  <div id="adminView" hidden></div>
+
+  <!-- ================= نافذة تأكيد عامة (أحمر) ================= -->
+  <div class="modal-overlay" id="confirmOverlay" hidden>
+    <div class="modal confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <div class="modal-head danger"><h2 id="confirmTitle">تأكيد</h2></div>
+      <div class="confirm-body">
+        <div class="warn-icon">⚠️</div>
+        <p id="confirmText"></p>
+      </div>
+      <div class="modal-foot">
+        <button type="button" id="confirmCancel" class="btn-ghost">إلغاء</button>
+        <button type="button" id="confirmOk" class="btn-danger">تأكيد</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

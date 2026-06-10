@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"try{const {DatabaseSync}=require\\('node:sqlite'\\);const db=new DatabaseSync\\(':memory:'\\);db.exec\\('CREATE TABLE t\\(x\\)'\\);db.prepare\\('INSERT INTO t VALUES\\(?\\)'\\).run\\(42\\);console.log\\('node:sqlite OK ->',db.prepare\\('SELECT x FROM t'\\).get\\(\\)\\);}catch\\(e\\){console.log\\('NEEDS FLAG or unavailable:',e.message\\)}\")"
+    ]
+  }
+}

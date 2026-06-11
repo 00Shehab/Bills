@@ -36,7 +36,7 @@ export const TYPES = {
       {key:'recipient',label:'اسم المستلم',type:'text'},{key:'date',label:'تاريخ الدفع',type:'date'},
       {key:'voucher',label:'رقم السند',type:'number'},{key:'notes',label:'الملاحظات',type:'text'} ] },
   receipt: { title:'سند قبض', theme:'receipt', layout:'receipt', sumKey:'amount', sumLabel:'قيمة السند', initial:1 },
-  letter: { title:'سند الهاشمي', theme:'letter', layout:'letter', sumKey:'amount', initial:0 },
+  letter: { title:'خطابات مجمع الهاشمي', theme:'letter', layout:'letter', sumKey:'amount', initial:0 },
 };
 
 /* ---------- أدوات الأرقام/التواريخ (إنجليزية دائمًا) ---------- */

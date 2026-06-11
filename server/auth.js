@@ -29,14 +29,14 @@ export function mountAuth(app) {
   });
 
   // 2) اختيار الهوية بعد كلمة سر المستخدمين
-  app.post('/api/select-user', (req, res) => {
+  app.post('/api/select-user', async (req, res) => {
     if (!req.session || req.session.stage !== 'pick') {
       return res.status(403).json({ error: 'ابدأ بإدخال كلمة السر أولًا' });
     }
     const name = (req.body && req.body.name) || '';
     if (!CONFIG.USERS.includes(name)) return res.status(400).json({ error: 'مستخدم غير معروف' });
     req.session = { role: 'user', user: name, at: now() };
-    touchLogin.run(now(), name);
+    try { await touchLogin.run(now(), name); } catch (e) { console.error('touchLogin:', e.message); }
     return res.json({ ok: true, user: name });
   });
 

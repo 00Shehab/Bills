@@ -1,10 +1,10 @@
-// نقطة دخول الخادم — Express: جلسات، مصادقة، واجهة ثابتة، (لاحقًا) API ومزامنة
+// نقطة دخول الخادم — Express: جلسات، مصادقة، واجهة ثابتة، API ومزامنة
 import express from 'express';
 import cookieSession from 'cookie-session';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CONFIG } from './config.js';
-import './db.js';                       // تهيئة قاعدة البيانات
+import { initDb } from './db.js'; // استيراد دالة تهيئة قاعدة البيانات السحابية
 import { mountAuth, requireAuthed } from './auth.js';
 import { mountInvoices } from './routes/invoices.js';
 import { mountActivity } from './routes/activity.js';
@@ -41,7 +41,17 @@ app.use((req, res, next) => {
   next();
 });
 
-app.listen(CONFIG.PORT, () => {
-  console.log(`نظام المحطة يعمل على http://localhost:${CONFIG.PORT}`);
-  maybeDailySnapshot();   // لقطة يومية تلقائية إن لزم
-});
+// ===== تشغيل قاعدة البيانات أولاً، ثم السيرفر =====
+async function startServer() {
+  try {
+    await initDb(); // انتظار الاتصال بقاعدة بيانات Neon السحابية
+    app.listen(CONFIG.PORT, () => {
+      console.log(`✅ نظام المحطة يعمل بامتياز على المنفذ: ${CONFIG.PORT}`);
+      maybeDailySnapshot();   // لقطة يومية تلقائية إن لزم
+    });
+  } catch (error) {
+    console.error('❌ فشل تشغيل السيرفر أو الاتصال بقاعدة البيانات:', error.message);
+  }
+}
+
+startServer();

@@ -1,54 +1,127 @@
-// تغذية التنبيهات: يرى المستخدم تغييرات الآخرين فقط (لا تغييراته هو)
-import { db, now } from '../db.js';
+// تغذية التنبيهات: يرى المستخدم تغييرات الآخرين فقط (لا تغييراته هو) — PostgreSQL
+import { all, get, run, now } from '../db.js';
 import { requireUser } from '../auth.js';
 
-const qUnread = db.prepare(`
-  SELECT a.* FROM activity_log a
-  WHERE a.actor != ?
-    AND NOT EXISTS (SELECT 1 FROM notification_reads nr WHERE nr.activity_id=a.id AND nr.user=?)
-  ORDER BY a.id DESC LIMIT 60`);
-const qAll = db.prepare(`
-  SELECT a.*, EXISTS(SELECT 1 FROM notification_reads nr WHERE nr.activity_id=a.id AND nr.user=?) AS is_read
-  FROM activity_log a WHERE a.actor != ? ORDER BY a.id DESC LIMIT 60`);
-const qUnreadCount = db.prepare(`
-  SELECT COUNT(*) AS c FROM activity_log a
-  WHERE a.actor != ?
-    AND NOT EXISTS (SELECT 1 FROM notification_reads nr WHERE nr.activity_id=a.id AND nr.user=?)`);
-const qUnreadIds = db.prepare(`
-  SELECT a.id FROM activity_log a
-  WHERE a.actor != ?
-    AND NOT EXISTS (SELECT 1 FROM notification_reads nr WHERE nr.activity_id=a.id AND nr.user=?)`);
-const markRead = db.prepare(`INSERT OR IGNORE INTO notification_reads(user, activity_id, read_at) VALUES(?,?,?)`);
+const ah = fn => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(e => {
+    console.error('[activity]', e.message);
+    if (!res.headersSent) res.status(500).json({ error: 'خطأ في الخادم' });
+  });
 
 function shape(a) {
   return {
-    id: a.id, actor: a.actor, action_type: a.action_type, target_type: a.target_type,
-    target_id: a.target_id, invoice_id: a.invoice_id, summary: a.summary,
+    id: a.id,
+    actor: a.actor,
+    action_type: a.action_type,
+    target_type: a.target_type,
+    target_id: a.target_id,
+    invoice_id: a.invoice_id,
+    summary: a.summary,
     before_data: a.before_data ? JSON.parse(a.before_data) : null,
     after_data: a.after_data ? JSON.parse(a.after_data) : null,
-    created_at: a.created_at, read: !!a.is_read,
+    created_at: a.created_at,
+    read: !!a.is_read,
   };
 }
 
 export function mountActivity(app) {
-  app.get('/api/activity', requireUser, (req, res) => {
+  app.get('/api/activity', requireUser, ah(async (req, res) => {
     const me = req.session.user;
     const scope = req.query.scope === 'all' ? 'all' : 'unread';
-    const rows = scope === 'all' ? qAll.all(me, me) : qUnread.all(me, me);
-    const count = qUnreadCount.get(me, me).c;
-    res.json({ items: rows.map(shape), unread: count });
-  });
 
-  app.post('/api/activity/:id/read', requireUser, (req, res) => {
-    markRead.run(req.session.user, Number(req.params.id), now());
+    const unreadSql = `
+      SELECT a.*
+      FROM activity_log a
+      WHERE a.actor != ?
+        AND NOT EXISTS (
+          SELECT 1
+          FROM notification_reads nr
+          WHERE nr.activity_id = a.id
+            AND nr.username = ?
+        )
+      ORDER BY a.id DESC
+      LIMIT 60
+    `;
+
+    const allSql = `
+      SELECT
+        a.*,
+        EXISTS(
+          SELECT 1
+          FROM notification_reads nr
+          WHERE nr.activity_id = a.id
+            AND nr.username = ?
+        ) AS is_read
+      FROM activity_log a
+      WHERE a.actor != ?
+      ORDER BY a.id DESC
+      LIMIT 60
+    `;
+
+    const unreadCountSql = `
+      SELECT COUNT(*)::int AS c
+      FROM activity_log a
+      WHERE a.actor != ?
+        AND NOT EXISTS (
+          SELECT 1
+          FROM notification_reads nr
+          WHERE nr.activity_id = a.id
+            AND nr.username = ?
+        )
+    `;
+
+    const rows = scope === 'all'
+      ? await all(allSql, [me, me])
+      : await all(unreadSql, [me, me]);
+
+    const countRow = await get(unreadCountSql, [me, me]);
+    const unread = Number(countRow?.c || 0);
+
+    res.json({ items: rows.map(shape), unread });
+  }));
+
+  app.post('/api/activity/:id/read', requireUser, ah(async (req, res) => {
+    await run(
+      `
+        INSERT INTO notification_reads(username, activity_id, read_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT (username, activity_id) DO NOTHING
+      `,
+      [req.session.user, Number(req.params.id), now()]
+    );
     res.json({ ok: true });
-  });
+  }));
 
-  app.post('/api/activity/read-all', requireUser, (req, res) => {
+  app.post('/api/activity/read-all', requireUser, ah(async (req, res) => {
     const me = req.session.user;
-    const ids = qUnreadIds.all(me, me);
+
+    const unreadIds = await all(
+      `
+        SELECT a.id
+        FROM activity_log a
+        WHERE a.actor != ?
+          AND NOT EXISTS (
+            SELECT 1
+            FROM notification_reads nr
+            WHERE nr.activity_id = a.id
+              AND nr.username = ?
+          )
+      `,
+      [me, me]
+    );
+
     const t = now();
-    for (const { id } of ids) markRead.run(me, id, t);
-    res.json({ ok: true, marked: ids.length });
-  });
+    for (const { id } of unreadIds) {
+      await run(
+        `
+          INSERT INTO notification_reads(username, activity_id, read_at)
+          VALUES (?, ?, ?)
+          ON CONFLICT (username, activity_id) DO NOTHING
+        `,
+        [me, id, t]
+      );
+    }
+
+    res.json({ ok: true, marked: unreadIds.length });
+  }));
 }

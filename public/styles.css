@@ -612,12 +612,12 @@ select {
 .sheet-accent {
   position:absolute;
   inset:0 auto auto 0;
-  width: 210px;
-  height: 86px;
+  width: 172px;
+  height: 70px;
   background:
-    linear-gradient(135deg, var(--brand-green) 0 54%, transparent 55%),
-    linear-gradient(148deg, transparent 58%, var(--brand-gold) 59% 62%, transparent 63%);
-  opacity: .96;
+    linear-gradient(135deg, var(--brand-green) 0 50%, transparent 50.6%),
+    linear-gradient(146deg, transparent 60%, var(--brand-gold) 60.4% 61.8%, transparent 62.2%),
+    linear-gradient(146deg, transparent 66%, var(--brand-gold-2) 66.4% 67.8%, transparent 68.2%);
   pointer-events:none;
 }
 .sheet-accent.exp { display:none; }
@@ -715,6 +715,8 @@ select {
   font-size: 16px;
   box-shadow: inset 0 -3px 0 var(--brand-gold);
 }
+.grid thead th .th-ic { display:block; margin-top:5px; line-height:0; color:#e6cd92; }
+.grid thead th .th-ic svg { display:inline-block; vertical-align:middle; }
 .grid th.meem, .grid td.meem {
   width: 58px;
   color: var(--brand-green) !important;
@@ -1036,11 +1038,11 @@ select {
 .letter-frame .lc.tl { top:-3px; left:-3px; border-top-width:7px; border-left-width:7px; }
 .letter-frame .lc.br { bottom:-3px; right:-3px; border-bottom-width:7px; border-right-width:7px; }
 .letter-frame .lc.bl { bottom:-3px; left:-3px; border-bottom-width:7px; border-left-width:7px; }
-.letter-head { position:relative; z-index:1; display:grid; grid-template-columns:1fr auto; gap:10px; margin-bottom:6px; }
-.letter-logo { grid-column:2; grid-row:1 / span 2; align-self:start; }
-.letter-logo img { height:92px; width:auto; }
-.letter-basmala { grid-column:1; grid-row:1; text-align:center; font-weight:700; font-size:17px; color:#222; padding-top:10px; }
-.letter-fields { grid-column:1; grid-row:2; display:flex; flex-direction:column; gap:10px; font-size:14px; color:#333; margin-top:14px; }
+.letter-head { position:relative; z-index:1; min-height:140px; margin-bottom:6px; }
+.letter-logo { position:absolute; top:0; right:0; width:128px; }
+.letter-logo img { height:92px; width:auto; display:block; }
+.letter-basmala { text-align:center; font-weight:700; font-size:17px; color:#222; padding-top:16px; }
+.letter-fields { position:absolute; top:52px; left:0; display:flex; flex-direction:column; gap:10px; font-size:14px; color:#333; align-items:flex-start; }
 .letter-fields b { color:#222; margin-left:4px; }
 .letter-edit { display:inline-block; min-width:160px; border-bottom:1.5px dotted #b9a36a; padding:0 6px 2px; outline:none; }
 .letter-edit:empty::before { content:attr(data-placeholder); color:#c9bd99; }
@@ -1049,10 +1051,9 @@ select {
   background-image: repeating-linear-gradient(transparent, transparent 37px, #eef2ee 37px, #eef2ee 38px); }
 .letter-body:empty::before { content:attr(data-placeholder); color:#bdbdbd; }
 .letter-body:focus { background-color:#fffdf6; }
-.letter-foot { margin-top:auto; padding-top:10px; }
-.letter-admin { font-weight:700; color:var(--brand-green); font-size:15px; margin-bottom:14px; }
-.letter-sign-row { display:flex; align-items:flex-end; gap:34px; font-size:14px; color:#333; }
-.letter-sign-row .lsr-name { flex:1; }
+.letter-foot { margin-top:auto; padding-top:10px; display:flex; flex-direction:column; align-items:flex-end; gap:14px; }
+.letter-admin { font-weight:700; color:var(--brand-green); font-size:15px; }
+.letter-sign-row { display:flex; flex-direction:column; align-items:flex-end; gap:16px; font-size:14px; color:#333; min-width:300px; }
 .letter-sign-row b { margin-left:6px; }
 .letter-sign { background:none; border:none; cursor:pointer; font-family:inherit; display:flex; align-items:flex-end; gap:8px; color:#333; flex:1; }
 .letter-sign .signature-line { flex:1; min-width:140px; min-height:42px; border-bottom:1.5px dotted #b9a36a; display:inline-flex; align-items:flex-end; justify-content:center; }
@@ -1061,9 +1062,10 @@ select {
   .letter-page { padding:30px 22px; min-height:0; }
   .letter-logo img { height:64px; }
   .letter-basmala { font-size:15px; }
-  .letter-head { grid-template-columns:1fr; }
-  .letter-logo { grid-column:1; grid-row:1; justify-self:center; }
-  .letter-basmala { grid-row:2; } .letter-fields { grid-row:3; }
+  .letter-head { min-height:0; text-align:center; }
+  .letter-logo { position:static; width:auto; margin:0 auto 8px; }
+  .letter-logo img { margin:0 auto; }
+  .letter-fields { position:static; margin-top:12px; }
   .letter-body { min-height:320px; }
   .letter-sign-row { flex-direction:column; align-items:stretch; gap:18px; }
 }

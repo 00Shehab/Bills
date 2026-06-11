@@ -7,6 +7,17 @@ export const MONTHS = ['يناير','فبراير','مارس','أبريل','ما
 
 const LOGO_SRC = 'assets/alhashmi-logo.svg';
 
+// أيقونات رؤوس أعمدة الإيرادات (مثل الصورة)
+const ICONS = {
+  shop:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 9l1.2-5h13.6L20 9M5 9v10h14V9M3.5 9h17"/></svg>',
+  tag:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M20 11.5 12.5 4H5v7.5L12.5 19z"/><circle cx="8.5" cy="8.5" r="1.3"/></svg>',
+  cal:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>',
+  money:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/></svg>',
+  coins:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7"><ellipse cx="12" cy="6.5" rx="7.5" ry="2.8"/><path d="M4.5 6.5v11c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8v-11"/></svg>',
+  receipt:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M6 3v18l2-1.2L10 21l2-1.2L14 21l2-1.2L18 21V3l-2 1.2L14 3l-2 1.2L10 3 8 4.2z"/><path d="M9 8.5h6M9 12h6"/></svg>',
+  pen:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 20h8M4 20l1-4L16 5l3 3L8 19z"/></svg>',
+};
+
 const remainingRevenue = d => {
   const hasAny = String(d?.rent ?? '').trim() || String(d?.paid ?? '').trim();
   if (!hasAny) return '';
@@ -26,10 +37,10 @@ export const TYPES = {
       {key:'notes',label:'الملاحظات',type:'text'} ] },
   rev: { title:'فاتورة الإيرادات', theme:'rev', sumKey:'paid', sumLabel:'إجمالي الإيرادات', initial:30,
     sub:'جدول تنظيم وتحصيل الإيرادات الشهرية للمحلات التجارية', section:null, cols:[
-      {key:'shop',label:'اسم المحل',type:'text'},{key:'rent',label:'قيمة الإيجار',type:'amount'},
-      {key:'due',label:'استحقاق الدفع',type:'date'},{key:'paid',label:'المدفوع',type:'amount'},
-      {key:'remaining',label:'المتبقي',type:'amount',computed:remainingRevenue,showZero:true},
-      {key:'voucher',label:'رقم السند',type:'number'},{key:'notes',label:'الملاحظات',type:'text'} ] },
+      {key:'shop',label:'اسم المحل',type:'text',ic:'shop'},{key:'rent',label:'قيمة الإيجار',type:'amount',ic:'tag'},
+      {key:'due',label:'استحقاق الدفع',type:'date',ic:'cal'},{key:'paid',label:'المدفوع',type:'amount',ic:'money'},
+      {key:'remaining',label:'المتبقي',type:'amount',computed:remainingRevenue,showZero:true,ic:'coins'},
+      {key:'voucher',label:'رقم السند',type:'number',ic:'receipt'},{key:'notes',label:'الملاحظات',type:'text',ic:'pen'} ] },
   other: { title:'مصاريف أخرى', theme:'grn', sumKey:'amount', sumLabel:'إجمالي المصروفات', initial:30,
     sub:'مصاريف شهرية متنوعة', section:null, totalStyle:'box', signature:'other', cols:[
       {key:'type',label:'نوع المصروف',type:'text'},{key:'amount',label:'المبلغ',type:'amount'},
@@ -254,7 +265,7 @@ function renderSheetHeader(inv, cfg){
 function renderTable(inv, cfg){
   const maxPos = current.rows.reduce((m,r)=>Math.max(m,r.position+1), 0);
   const shown = Math.max(cfg.initial, maxPos, current.extra);
-  let h = `<div class="table-shell ${cfg.theme}"><table class="grid ${cfg.theme}"><thead><tr><th class="meem">م</th>${cfg.cols.map(c=>`<th>${c.label}</th>`).join('')}</tr></thead><tbody>`;
+  let h = `<div class="table-shell ${cfg.theme}"><table class="grid ${cfg.theme}"><thead><tr><th class="meem">م</th>${cfg.cols.map(c=>`<th><span class="th-lbl">${c.label}</span>${c.ic && ICONS[c.ic] ? `<span class="th-ic">${ICONS[c.ic]}</span>` : ''}</th>`).join('')}</tr></thead><tbody>`;
   for(let i=0;i<shown;i++){
     const r = rowAtPos(i), data = r?.data || {};
     h += `<tr data-pos="${i}"${r?` data-rowid="${r.id}"`:''}><td class="meem">${i+1}${r?`<button class="row-del" data-delrow="${r.id}" title="حذف البند">×</button>`:''}</td>`;

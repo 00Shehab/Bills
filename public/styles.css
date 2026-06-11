@@ -167,8 +167,7 @@ select { font-family: inherit; padding: 8px 10px; border: 1px solid #cfcfd4; bor
 .row-del:hover { opacity: 1 !important; background: #fdecea; }
 @media print { .col-actions, .row-del { display: none !important; } }
 @media (max-width: 680px) {
-  .grid td.col-actions { display: flex; justify-content: flex-end; border: none; padding: 4px 14px 10px; }
-  .row-del { opacity: 1; background: #fdecea; padding: 6px 14px; }
+  .row-del { opacity: 1; left: 8px; }
 }
 
 /* زر إضافة صف */
@@ -724,11 +723,11 @@ select {
 .grid thead th.meem { color:#fff !important; }
 .grid tbody tr:nth-child(even) td { background: #f1f7f1 !important; }
 .grid tbody tr:nth-child(odd) td { background:#fff !important; }
-.grid td.edit, .grid td.computed { min-height: 48px; }
+/* كتابة في منتصف الخلية تمامًا (بلا مربّع/سطر جديد) */
+.grid td.edit, .grid td.computed { padding: 0 10px; line-height: 34px; }
 .grid td.edit:focus {
   outline:none;
-  background:#fffaf0 !important;
-  box-shadow: inset 0 0 0 2px rgba(187,140,47,.68);
+  background:#fff8ea !important;
 }
 .grid td.computed {
   color:#526052;
@@ -740,10 +739,15 @@ select {
   background:#fff !important;
   border-left: 0 !important;
 }
+.grid td.meem { position: relative; }
 .row-del {
-  color:#b7352b;
-  font-size: 12px;
+  position:absolute; top:50%; left:4px; transform:translateY(-50%);
+  border:none; background:rgba(183,53,43,.10); color:#b7352b; cursor:pointer;
+  width:22px; height:22px; line-height:20px; text-align:center; padding:0;
+  border-radius:50%; font-size:15px; opacity:0; transition:opacity .12s ease, background .12s ease;
 }
+.grid tbody tr:hover .row-del { opacity:.85; }
+.row-del:hover { background:#fdecea; opacity:1; }
 .add-row-btn {
   border-color: rgba(187,140,47,.6);
   background:#fffdf8;
@@ -761,46 +765,44 @@ select {
   border-top: 2px solid rgba(187,140,47,.52);
 }
 .summary-box {
-  display:grid;
-  grid-template-columns: minmax(160px, 1fr) 62px minmax(180px, auto);
-  align-items:center;
+  display:flex;
+  align-items:stretch;
   min-width: 430px;
   border: 1.5px solid var(--brand-gold);
-  border-radius: 8px;
+  border-radius: 10px;
   overflow:hidden;
-  background:#fffdf8;
+  background:#fff;
   box-shadow: 0 10px 22px rgba(7,42,26,.08);
 }
-.summary-value {
-  min-height: 58px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color: var(--brand-green);
-  font-weight:700;
-  font-size: 17px;
-}
-.summary-icon {
-  height:62px;
-  width:62px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background: radial-gradient(circle, var(--brand-gold-2), var(--brand-gold));
-  color:#fff;
-  font-weight:700;
-  font-size: 24px;
-}
 .summary-label {
-  min-height: 58px;
+  flex:1;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding: 0 20px;
+  min-height: 60px;
+  color:#fff;
+  background: linear-gradient(135deg, var(--brand-green), #0b3d27);
+  font-weight:700;
+  font-size: 15px;
+}
+.summary-ic {
+  width:38px; height:38px; flex:0 0 auto;
+  display:inline-flex; align-items:center; justify-content:center;
+  border-radius:50%;
+  background: linear-gradient(135deg, var(--brand-gold-2), var(--brand-gold));
+  color:#fff;
+}
+.summary-value {
+  min-width: 160px;
   display:flex;
   align-items:center;
   justify-content:center;
   padding: 0 18px;
-  color:#fff;
-  background: linear-gradient(135deg, var(--brand-green), #0b3d27);
+  color: var(--brand-green);
   font-weight:700;
-  text-align:center;
+  font-size: 18px;
+  background:#fffdf8;
 }
 .signature-slots {
   display:flex;

@@ -14,23 +14,23 @@ const remainingRevenue = d => {
 };
 
 export const TYPES = {
-  lower: { title:'فاتورة البيت الأسفل', theme:'exp', sumKey:'amount', sumLabel:'إجمالي مصروفات البيت', initial:5,
+  lower: { title:'فاتورة البيت الأسفل', theme:'exp', sumKey:'amount', sumLabel:'إجمالي مصروفات البيت', initial:30,
     sub:'جدول تنظيم وتوثيق المصروفات الشهرية للأسرة', section:'البيت الأسفل', sectionNo:'1', cols:[
       {key:'type',label:'نوع المصروف',type:'text'},{key:'amount',label:'المبلغ',type:'amount'},
       {key:'recipient',label:'المستلم',type:'text'},{key:'date',label:'تاريخ الدفع',type:'date'},
       {key:'notes',label:'الملاحظات',type:'text'} ] },
-  upper: { title:'فاتورة البيت الأعلى', theme:'exp', sumKey:'amount', sumLabel:'إجمالي مصروفات البيت', initial:5,
+  upper: { title:'فاتورة البيت الأعلى', theme:'exp', sumKey:'amount', sumLabel:'إجمالي مصروفات البيت', initial:30,
     sub:'جدول تنظيم وتوثيق المصروفات الشهرية للأسرة', section:'البيت الأعلى', sectionNo:'2', cols:[
       {key:'type',label:'نوع المصروف',type:'text'},{key:'amount',label:'المبلغ',type:'amount'},
       {key:'recipient',label:'المستلم',type:'text'},{key:'date',label:'تاريخ الدفع',type:'date'},
       {key:'notes',label:'الملاحظات',type:'text'} ] },
-  rev: { title:'فاتورة الإيرادات', theme:'rev', sumKey:'paid', sumLabel:'إجمالي الإيرادات', initial:10,
+  rev: { title:'فاتورة الإيرادات', theme:'rev', sumKey:'paid', sumLabel:'إجمالي الإيرادات', initial:30,
     sub:'جدول تنظيم وتحصيل الإيرادات الشهرية للمحلات التجارية', section:null, cols:[
       {key:'shop',label:'اسم المحل',type:'text'},{key:'rent',label:'قيمة الإيجار',type:'amount'},
       {key:'due',label:'استحقاق الدفع',type:'date'},{key:'paid',label:'المدفوع',type:'amount'},
       {key:'remaining',label:'المتبقي',type:'amount',computed:remainingRevenue,showZero:true},
       {key:'voucher',label:'رقم السند',type:'number'},{key:'notes',label:'الملاحظات',type:'text'} ] },
-  other: { title:'مصاريف أخرى', theme:'grn', sumKey:'amount', sumLabel:'إجمالي المصروفات', initial:10,
+  other: { title:'مصاريف أخرى', theme:'grn', sumKey:'amount', sumLabel:'إجمالي المصروفات', initial:30,
     sub:'مصاريف شهرية متنوعة', section:null, totalStyle:'box', signature:'other', cols:[
       {key:'type',label:'نوع المصروف',type:'text'},{key:'amount',label:'المبلغ',type:'amount'},
       {key:'recipient',label:'اسم المستلم',type:'text'},{key:'date',label:'تاريخ الدفع',type:'date'},
@@ -167,7 +167,10 @@ async function createInvoice(type){
   const d = new Date();
   try {
     const { invoice } = await api.post('/api/invoices', { type, month: d.getMonth(), year: d.getFullYear() });
+    // التاريخ التلقائي عند الإنشاء (سند قبض / سند الهاشمي) — قابل للتعديل لاحقًا
+    if(type === 'receipt'){ try { await api.post(`/api/invoices/${invoice.id}/rows`, { position:0, data:{ date: todayISO() } }); } catch {} }
     await openInvoice(invoice.id);
+    if(type === 'letter'){ const m = invoiceMeta(); if(!m.date){ m.date = todayISO(); try { await saveInvoiceMeta(m); renderInvoice(); } catch {} } }
     toast(`تم إنشاء «${TYPES[type].title}»`);
   } catch { toast('تعذّر الإنشاء'); }
 }
@@ -251,10 +254,10 @@ function renderSheetHeader(inv, cfg){
 function renderTable(inv, cfg){
   const maxPos = current.rows.reduce((m,r)=>Math.max(m,r.position+1), 0);
   const shown = Math.max(cfg.initial, maxPos, current.extra);
-  let h = `<div class="table-shell ${cfg.theme}"><table class="grid ${cfg.theme}"><thead><tr><th class="meem">م</th>${cfg.cols.map(c=>`<th>${c.label}</th>`).join('')}<th class="col-actions"></th></tr></thead><tbody>`;
+  let h = `<div class="table-shell ${cfg.theme}"><table class="grid ${cfg.theme}"><thead><tr><th class="meem">م</th>${cfg.cols.map(c=>`<th>${c.label}</th>`).join('')}</tr></thead><tbody>`;
   for(let i=0;i<shown;i++){
     const r = rowAtPos(i), data = r?.data || {};
-    h += `<tr data-pos="${i}"${r?` data-rowid="${r.id}"`:''}><td class="meem">${i+1}</td>`;
+    h += `<tr data-pos="${i}"${r?` data-rowid="${r.id}"`:''}><td class="meem">${i+1}${r?`<button class="row-del" data-delrow="${r.id}" title="حذف البند">×</button>`:''}</td>`;
     cfg.cols.forEach(c=>{
       const val = c.computed ? c.computed(data) : (data[c.key] || '');
       const disp = displayValue(c.type, val, c.showZero);
@@ -264,18 +267,17 @@ function renderTable(inv, cfg){
         h += `<td class="edit" contenteditable="true" data-key="${c.key}" data-type="${c.type}" data-label="${c.label}">${escapeHtml(disp)}</td>`;
       }
     });
-    h += `<td class="col-actions">${r ? `<button class="row-del" data-delrow="${r.id}" title="حذف البند">حذف</button>` : ''}</td></tr>`;
+    h += `</tr>`;
   }
   h += `</tbody></table></div><button type="button" class="add-row-btn" data-action="add-row"><span style="font-size:16px">+</span> إضافة بند جديد</button>`;
   return h;
 }
 function renderTotal(cfg){
-  const icon = cfg.theme === 'rev' ? 'إ' : cfg.theme === 'grn' ? 'م' : 'ج';
+  const icon = `<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>`;
   return `<div class="summary-area ${cfg.theme}">
     <div class="summary-box ${cfg.theme}">
+      <span class="summary-label"><span class="summary-ic">${icon}</span>${cfg.sumLabel}</span>
       <span class="summary-value" id="invTotal"></span>
-      <span class="summary-icon">${icon}</span>
-      <span class="summary-label">${cfg.sumLabel}</span>
     </div>
   </div>`;
 }
@@ -449,8 +451,8 @@ async function upsertRow(pos, data, tr=null){
     current.rows.push({ id:row.id, position:pos, data });
     if(tr){
       tr.dataset.rowid = row.id;
-      const actCell = tr.querySelector('td.col-actions');
-      if(actCell) actCell.innerHTML = `<button class="row-del" data-delrow="${row.id}" title="حذف البند">حذف</button>`;
+      const meemCell = tr.querySelector('td.meem');
+      if(meemCell && !meemCell.querySelector('.row-del')) meemCell.insertAdjacentHTML('beforeend', `<button class="row-del" data-delrow="${row.id}" title="حذف البند">×</button>`);
     }
     return row;
   }

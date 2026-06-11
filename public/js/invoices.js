@@ -25,23 +25,23 @@ const remainingRevenue = d => {
 };
 
 export const TYPES = {
-  lower: { title:'فاتورة البيت الأسفل', theme:'exp', sumKey:'amount', sumLabel:'إجمالي مصروفات البيت', initial:30,
+  lower: { title:'بيانات مصروفات البيت الأسفل', theme:'exp', sumKey:'amount', sumLabel:'إجمالي مصروفات البيت', initial:30,
     sub:'جدول تنظيم وتوثيق المصروفات الشهرية للأسرة', section:'البيت الأسفل', sectionNo:'1', cols:[
       {key:'type',label:'نوع المصروف',type:'text'},{key:'amount',label:'المبلغ',type:'amount'},
       {key:'recipient',label:'المستلم',type:'text'},{key:'date',label:'تاريخ الدفع',type:'date'},
       {key:'notes',label:'الملاحظات',type:'text'} ] },
-  upper: { title:'فاتورة البيت الأعلى', theme:'exp', sumKey:'amount', sumLabel:'إجمالي مصروفات البيت', initial:30,
+  upper: { title:'بيانات مصروفات البيت الأعلى', theme:'exp', sumKey:'amount', sumLabel:'إجمالي مصروفات البيت', initial:30,
     sub:'جدول تنظيم وتوثيق المصروفات الشهرية للأسرة', section:'البيت الأعلى', sectionNo:'2', cols:[
       {key:'type',label:'نوع المصروف',type:'text'},{key:'amount',label:'المبلغ',type:'amount'},
       {key:'recipient',label:'المستلم',type:'text'},{key:'date',label:'تاريخ الدفع',type:'date'},
       {key:'notes',label:'الملاحظات',type:'text'} ] },
-  rev: { title:'فاتورة الإيرادات', theme:'rev', sumKey:'paid', sumLabel:'إجمالي الإيرادات', initial:30,
+  rev: { title:'بيانات الإيرادات', theme:'rev', sumKey:'paid', sumLabel:'إجمالي الإيرادات', initial:30,
     sub:'جدول تنظيم وتحصيل الإيرادات الشهرية للمحلات التجارية', section:null, cols:[
       {key:'shop',label:'اسم المحل',type:'text',ic:'shop'},{key:'rent',label:'قيمة الإيجار',type:'amount',ic:'tag'},
       {key:'due',label:'استحقاق الدفع',type:'date',ic:'cal'},{key:'paid',label:'المدفوع',type:'amount',ic:'money'},
       {key:'remaining',label:'المتبقي',type:'amount',computed:remainingRevenue,showZero:true,ic:'coins'},
       {key:'voucher',label:'رقم السند',type:'number',ic:'receipt'},{key:'notes',label:'الملاحظات',type:'text',ic:'pen'} ] },
-  other: { title:'مصاريف أخرى', theme:'grn', sumKey:'amount', sumLabel:'إجمالي المصروفات', initial:30,
+  other: { title:'بيانات مصاريف أخرى', theme:'grn', sumKey:'amount', sumLabel:'إجمالي المصروفات', initial:30,
     sub:'مصاريف شهرية متنوعة', section:null, totalStyle:'box', signature:'other', cols:[
       {key:'type',label:'نوع المصروف',type:'text'},{key:'amount',label:'المبلغ',type:'amount'},
       {key:'recipient',label:'اسم المستلم',type:'text'},{key:'date',label:'تاريخ الدفع',type:'date'},

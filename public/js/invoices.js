@@ -400,7 +400,7 @@ async function deleteInvoice(id){
   const inv = current && current.invoice.id===id ? current.invoice : null;
   const label = inv ? `${TYPES[inv.type].title} - ${MONTHS[inv.month]} ${inv.year}` : 'هذه الفاتورة';
   const ok = await confirmDanger({ title:'تأكيد حذف الفاتورة',
-    text:`سيتم حذف «<b>${escapeHtml(label)}</b>» نهائيًا.<br>يمكن للأدمن استرجاعها لاحقًا.`, okLabel:'نعم، احذف' });
+    text:`سيتم حذف «<b>${escapeHtml(label)}</b>» نهائيًا.<br>`, okLabel:'نعم، احذف' });
   if(!ok) return;
   try { await api.del('/api/invoices/'+id); toast('تم حذف الفاتورة'); showList(); }
   catch { toast('تعذّر الحذف'); }
@@ -408,7 +408,7 @@ async function deleteInvoice(id){
 
 async function deleteRow(rid){
   const ok = await confirmDanger({ title:'حذف بند',
-    text:'سيتم حذف هذا البند، ويمكن للأدمن استرجاعه لاحقًا.', okLabel:'نعم، احذف' });
+    text:'سيتم حذف هذا السطر', okLabel:'نعم، احذف' });
   if(!ok) return;
   try {
     await api.del(`/api/invoices/${current.invoice.id}/rows/${rid}`);

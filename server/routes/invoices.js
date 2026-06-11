@@ -1,5 +1,5 @@
 // طبقة الفواتير (واجهة): قائمة + عرض فاتورة + تعديل مباشر — المصدر هو الـ API المركزي
-import { api } from './api.js';
+import { all, get, run, now } from '../db.js';
 import { $, escapeHtml, toast, confirmDanger } from './ui.js';
 
 export const MONTHS = [

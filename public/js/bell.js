@@ -6,10 +6,13 @@ import { navigateToActivity } from './invoices.js';
 
 const KEY_LABELS = {
   type:'نوع المصروف', amount:'المبلغ', recipient:'المستلم', date:'تاريخ الدفع',
-  notes:'الملاحظات', shop:'اسم المحل', rent:'قيمة الإيجار', due:'استحقاق الدفع', voucher:'رقم السند',
+  notes:'الملاحظات', shop:'اسم المحل', rent:'قيمة الإيجار', due:'استحقاق الدفع', paid:'المدفوع',
+  remaining:'المتبقي', voucher:'رقم السند', receiptNo:'رقم سند القبض', payer:'الدافع',
+  purpose:'مقابل', paymentMethod:'طريقة السداد', paymentNo:'رقم الشيك / التحويل', bank:'البنك',
+  paymentDate:'تاريخ السداد',
 };
-const AMOUNT_KEYS = new Set(['amount','rent']);
-const DATE_KEYS = new Set(['date','due']);
+const AMOUNT_KEYS = new Set(['amount','rent','paid','remaining']);
+const DATE_KEYS = new Set(['date','due','paymentDate']);
 
 const toLatin = s => String(s ?? '').replace(/[٠-٩]/g,d=>d.charCodeAt(0)-0x0660);
 function fmtVal(k, v){

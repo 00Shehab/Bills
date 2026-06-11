@@ -89,6 +89,11 @@ CREATE INDEX IF NOT EXISTS idx_rows_invoice ON invoice_rows(invoice_id);
 CREATE INDEX IF NOT EXISTS idx_activity_created ON activity_log(id DESC);
 `);
 
+const invoiceCols = db.prepare('PRAGMA table_info(invoices)').all().map(c => c.name);
+if (!invoiceCols.includes('meta')) {
+  db.exec(`ALTER TABLE invoices ADD COLUMN meta TEXT NOT NULL DEFAULT '{}'`);
+}
+
 // زرع المستخدمين المعتمدين (هوية تشغيل)
 const seed = db.prepare('INSERT OR IGNORE INTO users(display_name, role, created_at) VALUES(?,?,?)');
 for (const name of CONFIG.USERS) seed.run(name, 'user', now());

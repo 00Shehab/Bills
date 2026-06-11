@@ -7,7 +7,10 @@ const ACTION = {
   restore:{t:'استرجاع',c:'a-res'}, create_invoice:{t:'إنشاء فاتورة',c:'a-add'}, delete_invoice:{t:'حذف فاتورة',c:'a-del'},
 };
 const KEY_LABELS = { type:'نوع المصروف', amount:'المبلغ', recipient:'المستلم', date:'تاريخ الدفع',
-  notes:'الملاحظات', shop:'اسم المحل', rent:'قيمة الإيجار', due:'استحقاق الدفع', voucher:'رقم السند' };
+  notes:'الملاحظات', shop:'اسم المحل', rent:'قيمة الإيجار', due:'استحقاق الدفع', paid:'المدفوع',
+  remaining:'المتبقي', voucher:'رقم السند', receiptNo:'رقم سند القبض', payer:'الدافع',
+  purpose:'مقابل', paymentMethod:'طريقة السداد', paymentNo:'رقم الشيك / التحويل', bank:'البنك',
+  paymentDate:'تاريخ السداد' };
 
 const pad = n => String(n).padStart(2,'0');
 const dt = iso => { const d = new Date(iso); return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };

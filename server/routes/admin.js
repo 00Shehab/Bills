@@ -5,7 +5,7 @@ import { db, now, DB_PATH, BACKUP_DIR } from '../db.js';
 import { requireAdmin } from '../auth.js';
 import { recordActivity } from '../changeTracker.js';
 
-const TYPE_TITLES = { lower:'فاتورة البيت الأسفل', upper:'فاتورة البيت الأعلى', rev:'فاتورة الإيرادات', other:'معاملات أخرى' };
+const TYPE_TITLES = { lower:'فاتورة البيت الأسفل', upper:'فاتورة البيت الأعلى', rev:'فاتورة الإيرادات', other:'معاملات أخرى', receipt:'سند قبض' };
 const MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 
 const qLog        = db.prepare(`SELECT * FROM activity_log ORDER BY id DESC LIMIT 300`);
@@ -99,7 +99,15 @@ export function mountAdmin(app) {
       const p = snap.file_path.replace(/\\/g, '/');
       db.exec(`ATTACH DATABASE '${p}' AS snap`);
       db.exec('BEGIN');
-      for (const t of ['invoices', 'invoice_rows', 'activity_log', 'notification_reads']) {
+      db.exec('DELETE FROM invoices');
+      const snapInvoiceCols = db.prepare('PRAGMA snap.table_info(invoices)').all().map(c => c.name);
+      if (snapInvoiceCols.includes('meta')) {
+        db.exec(`INSERT INTO invoices SELECT * FROM snap.invoices`);
+      } else {
+        db.exec(`INSERT INTO invoices(id,type,month,year,created_by,created_at,updated_by,updated_at,deleted_by,deleted_at,status,meta)
+                 SELECT id,type,month,year,created_by,created_at,updated_by,updated_at,deleted_by,deleted_at,status,'{}' FROM snap.invoices`);
+      }
+      for (const t of ['invoice_rows', 'activity_log', 'notification_reads']) {
         db.exec(`DELETE FROM ${t}`);
         db.exec(`INSERT INTO ${t} SELECT * FROM snap.${t}`);
       }

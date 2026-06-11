@@ -11,8 +11,8 @@
   <!-- ================= شاشة الدخول (كلمة السر) ================= -->
   <div id="loginView" class="auth-view" hidden>
     <div class="auth-card">
-      <div class="auth-logo">🔐</div>
-      <h1>نظام المحطة المالي</h1>
+      <div class="auth-logo"><img src="assets/alhashmi-logo.svg" alt="الهاشمي" /></div>
+      <h1>نظام الهاشمي المالي</h1>
       <p class="auth-sub">أدخل كلمة السر للمتابعة</p>
       <form id="loginForm" autocomplete="off">
         <input id="passInput" type="password" placeholder="كلمة السر" required />
@@ -25,7 +25,7 @@
   <!-- ================= اختيار الهوية ================= -->
   <div id="pickView" class="auth-view" hidden>
     <div class="auth-card">
-      <div class="auth-logo">👤</div>
+      <div class="auth-logo"><img src="assets/alhashmi-logo.svg" alt="الهاشمي" /></div>
       <h1>اختر اسمك</h1>
       <p class="auth-sub">ستُنسب كل عملية تقوم بها إلى هذا الاسم</p>
       <div id="userButtons" class="user-buttons"></div>
@@ -38,7 +38,8 @@
     <header class="topbar">
       <div class="topbar-right">
         <button id="homeBtn" class="icon-btn">☰<span class="lbl"> الفواتير</span></button>
-        <span class="app-name">دفاتر المحطة</span>
+        <img class="topbar-logo" src="assets/alhashmi-logo.svg" alt="الهاشمي" />
+        <span class="app-name">دفاتر الهاشمي</span>
       </div>
       <div class="topbar-left">
         <div class="add-wrap">
@@ -50,6 +51,8 @@
             <button data-type="upper" role="menuitem"><span class="dot exp"></span> فاتورة البيت الأعلى</button>
             <button data-type="rev"   role="menuitem"><span class="dot rev"></span> فاتورة الإيرادات</button>
             <button data-type="other" role="menuitem"><span class="dot grn"></span> معاملات أخرى</button>
+            <button data-type="receipt" role="menuitem"><span class="dot receipt"></span> سند قبض</button>
+            <button data-type="letter" role="menuitem"><span class="dot letter"></span> سند الهاشمي</button>
           </div>
         </div>
 
@@ -90,6 +93,24 @@
   </div>
 
   <div class="toast" id="toast" hidden></div>
+
+  <!-- ================= صفحة التوقيع ================= -->
+  <div id="signatureView" class="signature-view" hidden>
+    <div class="signature-bar">
+      <button type="button" id="signatureCancel" class="btn-ghost">رجوع</button>
+      <div>
+        <h2 id="signatureTitle">التوقيع</h2>
+        <p>اكتب توقيعك داخل المساحة البيضاء</p>
+      </div>
+      <div class="signature-actions">
+        <button type="button" id="signatureClear" class="btn-ghost">مسح</button>
+        <button type="button" id="signatureSave" class="btn-primary">حفظ</button>
+      </div>
+    </div>
+    <div class="signature-paper">
+      <canvas id="signatureCanvas"></canvas>
+    </div>
+  </div>
 
   <script type="module" src="js/main.js"></script>
 </body>

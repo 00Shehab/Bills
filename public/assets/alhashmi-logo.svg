@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title desc">
+  <title id="title">شعار الهاشمي</title>
+  <desc id="desc">شعار مجمع الهاشمي التجاري والسكني</desc>
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#006338"/>
+      <stop offset=".56" stop-color="#024626"/>
+      <stop offset="1" stop-color="#0b6b3b"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" x2="1">
+      <stop offset="0" stop-color="#9d7421"/>
+      <stop offset=".48" stop-color="#d7b358"/>
+      <stop offset="1" stop-color="#9a721d"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#06391f" flood-opacity=".15"/>
+    </filter>
+  </defs>
+  <rect width="640" height="420" fill="none"/>
+  <g transform="translate(220 28)" filter="url(#soft)">
+    <path d="M96 188V63l47-38 47 38v125h-28V78l-19-15-19 15v110z" fill="url(#g)"/>
+    <path d="M18 188v-82l42-34 42 34v82H75v-70l-15-12-15 12v70z" fill="url(#g)"/>
+    <path d="M185 188v-82l42-34 42 34v82h-27v-70l-15-12-15 12v70z" fill="url(#g)"/>
+    <g fill="#f8fbf6" opacity=".92">
+      <rect x="46" y="122" width="24" height="8" rx="1"/>
+      <rect x="46" y="141" width="24" height="8" rx="1"/>
+      <rect x="46" y="160" width="24" height="8" rx="1"/>
+      <rect x="128" y="84" width="30" height="9" rx="1"/>
+      <rect x="128" y="106" width="30" height="9" rx="1"/>
+      <rect x="128" y="128" width="30" height="9" rx="1"/>
+      <rect x="128" y="150" width="30" height="9" rx="1"/>
+      <rect x="217" y="122" width="24" height="8" rx="1"/>
+      <rect x="217" y="141" width="24" height="8" rx="1"/>
+      <rect x="217" y="160" width="24" height="8" rx="1"/>
+    </g>
+    <path d="M-8 185c61 30 239 30 300 0-35 50-265 50-300 0z" fill="url(#gold)"/>
+  </g>
+  <text x="320" y="290" text-anchor="middle" direction="rtl" unicode-bidi="plaintext"
+        font-family="DejaVu Sans, Tahoma, Arial, sans-serif" font-size="86" font-weight="700" fill="#064b2b">الهاشمي</text>
+  <text x="320" y="343" text-anchor="middle" direction="rtl" unicode-bidi="plaintext"
+        font-family="DejaVu Sans, Tahoma, Arial, sans-serif" font-size="29" font-weight="700" fill="#a67b24">مجمع الهاشمي التجاري والسكني</text>
+  <g stroke="#064b2b" stroke-width="4" stroke-linecap="round" fill="none">
+    <path d="M158 376h122"/>
+    <path d="M360 376h122"/>
+  </g>
+  <text x="320" y="388" text-anchor="middle" direction="rtl" unicode-bidi="plaintext"
+        font-family="DejaVu Sans, Tahoma, Arial, sans-serif" font-size="26" fill="#064b2b">الدرب - الشارع العام</text>
+</svg>

@@ -6,5 +6,5 @@ export const CONFIG = {
   SESSION_SECRET: process.env.SESSION_SECRET || 'dev-insecure-secret-change-me',
   SETTLE_MS: parseInt(process.env.SETTLE_MS || '2500', 10),
   // المستخدمون المعتمدون (هوية تشغيل لا مصادقة)
-  USERS: ['يوسف عقة', 'إبراهيم عامر', 'هادي عامر'],
+  USERS: ['المحاسب', 'إبراهيم عامر', 'هادي عامر'],
 };

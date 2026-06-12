@@ -228,20 +228,60 @@ function renderInvoice(){
 
   appMain().innerHTML = h;
   updateTotal();
+  applyPrintOrientation();   // اضبط اتجاه ورق الطباعة (A4) حسب نوع الفاتورة مسبقًا
   appMain().querySelectorAll('[data-meta="month"]').forEach(el => el.addEventListener('change', e => changeMeta('month', +e.target.value)));
   appMain().querySelectorAll('[data-meta="year"]').forEach(el => el.addEventListener('change', e => changeMeta('year', +e.target.value)));
 }
 function renderToolbar(inv){
   return `<div class="invoice-toolbar">
-    <button class="btn-ghost" data-action="back">→ رجوع للقائمة</button>
+    <button type="button" class="btn-ghost" data-action="back">→ رجوع للقائمة</button>
     <div class="invoice-meta">
       <label class="meta-pick">الشهر:
         <select data-meta="month">${MONTHS.map((m,i)=>`<option value="${i}" ${i===inv.month?'selected':''}>${m}</option>`).join('')}</select>
         <select data-meta="year">${yearOptions(inv.year)}</select>
       </label>
-      <button class="btn-ghost" data-action="print">طباعة</button>
-      <button class="btn-danger" data-action="delete-invoice">حذف الفاتورة</button>
+      <button type="button" class="btn-primary btn-print" data-action="print">🖨️ طباعة / حفظ PDF</button>
+      <button type="button" class="btn-danger" data-action="delete-invoice">حذف الفاتورة</button>
     </div></div>`;
+}
+
+/* ---------- الطباعة / حفظ PDF (يدعم الأيفون + يطبع تصميم الكمبيوتر على ورق A4) ---------- */
+function pdfFileName(){
+  const inv = current?.invoice; if(!inv) return 'فاتورة';
+  const cfg = TYPES[inv.type] || {};
+  const base = cfg.title || inv.type;
+  return (inv.month != null && inv.year)
+    ? `${base} - ${MONTHS[inv.month]} ${inv.year}`
+    : base;
+}
+function applyPrintOrientation(){
+  const cfg = TYPES[current?.invoice?.type] || {};
+  const portrait = cfg.layout === 'receipt' || cfg.layout === 'letter';
+  const orient = portrait ? 'portrait' : 'landscape';
+  let st = document.getElementById('printPageStyle');
+  if(!st){ st = document.createElement('style'); st.id = 'printPageStyle'; document.head.appendChild(st); }
+  st.textContent = `@page { size: A4 ${orient}; margin: ${portrait ? '12mm' : '8mm'}; }`;
+  document.documentElement.classList.toggle('print-portrait', portrait);
+  document.documentElement.classList.toggle('print-landscape', !portrait);
+}
+function printInvoice(){
+  if(getView() !== 'invoice') return;
+  // ثبّت أي خلية قيد التعديل قبل الطباعة (تجنّب فقدان آخر تعديل أو ظهور مؤشّر الكتابة)
+  const ae = document.activeElement;
+  if(ae && typeof ae.blur === 'function' && (ae.isContentEditable || ae.tagName === 'INPUT')) ae.blur();
+  applyPrintOrientation();
+  const prevTitle = document.title;
+  document.title = pdfFileName();          // يصبح اسم ملف الـ PDF المقترح عند الحفظ
+  const restore = () => { document.title = prevTitle; };
+  window.addEventListener('afterprint', restore, { once: true });
+  setTimeout(restore, 4000);               // احتياط لأجهزة لا تطلق afterprint (أيفون)
+  try {
+    if(typeof window.print === 'function') window.print();
+    else throw new Error('no-print');
+  } catch {
+    restore();
+    toast('لإتمام الطباعة: افتح الصفحة في Safari ثم زر المشاركة ⬆️ واختر «طباعة»');
+  }
 }
 function renderSheetHeader(inv, cfg){
   const month = MONTHS[inv.month];
@@ -400,7 +440,7 @@ function onMainClick(e){
   if(sigBtn){ e.stopPropagation(); openSignature(sigBtn.dataset.signatureSlot, sigBtn.dataset.signatureLabel); return; }
   const action = e.target.closest('[data-action]')?.getAttribute('data-action');
   if(action==='back') return showList();
-  if(action==='print') return window.print();
+  if(action==='print') return printInvoice();
   if(action==='delete-invoice') return deleteInvoice(current.invoice.id);
   if(action==='add-row') return addRow();
   const openId = e.target.closest('[data-open]')?.getAttribute('data-open');

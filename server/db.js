@@ -11,8 +11,9 @@ if (!CONFIG.DATABASE_URL) {
 }
 
 export const pool = new Pool({
-  connectionString: CONFIG.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },   // مطلوب للاتصال بـ Neon
+  // نستبدل sslmode=require بـ no-verify لتفادي تحذير الإهمال، مع إبقاء التشفير عبر ssl أدناه
+  connectionString: (CONFIG.DATABASE_URL || '').replace(/sslmode=require/gi, 'sslmode=no-verify'),
+  ssl: { rejectUnauthorized: false },   // SSL مفعّل (مطلوب لـ Neon) دون تحقق صارم من الشهادة
   max: 5,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 15000,

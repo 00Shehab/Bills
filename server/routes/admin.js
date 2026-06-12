@@ -8,6 +8,11 @@ const MONTHS = [
   'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
 ];
 
+const TYPE_TITLES = {
+  lower: 'فاتورة البيت الأسفل', upper: 'فاتورة البيت الأعلى', rev: 'فاتورة الإيرادات',
+  other: 'معاملات أخرى', receipt: 'سند قبض', letter: 'سند الهاشمي',
+};
+
 let dailyTimer = null;
 let lastDailySnapshotKey = null;
 
@@ -25,7 +30,7 @@ const toJson = (value) => (value === undefined ? null : JSON.stringify(value));
 
 function invLabel(inv) {
   const meta = safeJson(inv.meta, {}) || {};
-  const title = meta.label || meta.title || meta.typeLabel || inv.type || 'فاتورة';
+  const title = meta.label || meta.title || TYPE_TITLES[inv.type] || inv.type || 'فاتورة';
   const month = MONTHS[Math.max(0, Number(inv.month || 1) - 1)] || String(inv.month || '');
   return `${title} - ${month} ${inv.year || ''}`.trim();
 }
@@ -102,33 +107,32 @@ async function resetSerial(client, table, column) {
 }
 
 async function fetchSnapshotData(client) {
-  const [users, invoices, invoiceRows, activityLog, reads] = await Promise.all([
-    q(client, `
-      SELECT id, display_name, role, created_at, last_login_at
-      FROM users
-      ORDER BY id ASC
-    `),
-    q(client, `
-      SELECT *
-      FROM invoices
-      ORDER BY created_at ASC, id ASC
-    `),
-    q(client, `
-      SELECT *
-      FROM invoice_rows
-      ORDER BY created_at ASC, position ASC, id ASC
-    `),
-    q(client, `
-      SELECT *
-      FROM activity_log
-      ORDER BY id ASC
-    `),
-    q(client, `
-      SELECT *
-      FROM notification_reads
-      ORDER BY username ASC, activity_id ASC
-    `),
-  ]);
+  // مهم: عميل PostgreSQL واحد لا ينفّذ إلا استعلامًا واحدًا في كل مرة — لذا ننفّذها بالتسلسل
+  const users = await q(client, `
+    SELECT id, display_name, role, created_at, last_login_at
+    FROM users
+    ORDER BY id ASC
+  `);
+  const invoices = await q(client, `
+    SELECT *
+    FROM invoices
+    ORDER BY created_at ASC, id ASC
+  `);
+  const invoiceRows = await q(client, `
+    SELECT *
+    FROM invoice_rows
+    ORDER BY created_at ASC, position ASC, id ASC
+  `);
+  const activityLog = await q(client, `
+    SELECT *
+    FROM activity_log
+    ORDER BY id ASC
+  `);
+  const reads = await q(client, `
+    SELECT *
+    FROM notification_reads
+    ORDER BY username ASC, activity_id ASC
+  `);
 
   return {
     version: 1,

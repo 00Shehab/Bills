@@ -690,14 +690,19 @@ body {
 }
 .invoice-grid { gap: 18px; }
 .inv-card {
-  border-radius: 8px;
-  border: 1px solid rgba(0,79,46,.12);
-  background: rgba(255,255,255,.86);
+  border-radius: 10px;
+  border: 1px solid rgba(0,79,46,.16);
+  border-inline-start: 4px solid var(--brand-gold);     /* خط ذهبي جانبي = لمسة هوية المنصّة */
+  background: var(--paper);                              /* ورقي دافئ بدل الأبيض الصريح */
   box-shadow: 0 14px 34px rgba(7,42,26,.08);
 }
-.inv-card:hover { box-shadow: 0 20px 42px rgba(7,42,26,.13); }
-.inv-card .stripe { height: 6px; background: linear-gradient(90deg, var(--brand-green), var(--brand-gold)); }
-.inv-card.exp .stripe, .inv-card.rev .stripe, .inv-card.grn .stripe, .inv-card.receipt .stripe { background: linear-gradient(90deg, var(--brand-green), var(--brand-gold)); }
+.inv-card:hover { box-shadow: 0 20px 42px rgba(7,42,26,.13); border-color: rgba(0,79,46,.30); }
+.inv-card .stripe { height: 7px; background: linear-gradient(90deg, var(--brand-green), var(--brand-gold)); }
+.inv-card.exp .stripe, .inv-card.rev .stripe, .inv-card.grn .stripe, .inv-card.receipt .stripe, .inv-card.letter .stripe { background: linear-gradient(90deg, var(--brand-green), var(--brand-gold)); }
+/* فاصل ذهبي خفيف يفصل ترويسة البطاقة عن الأرقام، وفاصل ذهبي فوق أزرار الإجراءات */
+.inv-card .stats { border-top: 1px solid rgba(187,140,47,.32); margin-top: 10px; padding-top: 10px; }
+.inv-card.letter .stats { border-top: 0; margin-top: 0; padding-top: 0; }   /* الخطاب: سطر واحد فقط، لا داعي لفاصل */
+.inv-card .row-actions { border-top: 1px solid rgba(187,140,47,.30); }
 .card-top {
   display:flex;
   align-items:center;

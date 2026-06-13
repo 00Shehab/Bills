@@ -6,6 +6,7 @@ export const MONTHS = ['يناير','فبراير','مارس','أبريل','ما
                        'أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 
 const LOGO_SRC = 'assets/alhashmi-logo.svg';
+const APP_TITLE = 'نظام المحطة المالي';   // عنوان الصفحة الافتراضي (مطابق لـ index.html)
 
 // أيقونات رؤوس أعمدة الإيرادات (مثل الصورة)
 const ICONS = {
@@ -289,16 +290,18 @@ function printInvoice(){
   const ae = document.activeElement;
   if(ae && typeof ae.blur === 'function' && (ae.isContentEditable || ae.tagName === 'INPUT')) ae.blur();
   applyPrintOrientation();
-  const prevTitle = document.title;
-  document.title = pdfFileName();          // يصبح اسم ملف الـ PDF المقترح عند الحفظ
-  const restore = () => { document.title = prevTitle; };
-  window.addEventListener('afterprint', restore, { once: true });
-  setTimeout(restore, 4000);               // احتياط لأجهزة لا تطلق afterprint (أيفون)
+  // اسم ملف الـ PDF المقترح = عنوان الفاتورة الحالية. نضبطه قبل الطباعة مباشرة فقط.
+  // لا نستخدم مؤقّتًا للاستعادة: على الأيفون لا يُطلق afterprint وقد يستغرق تدفّق
+  // «حفظ في الملفات» أكثر من ثوانٍ، فكان المؤقّت يعيد العنوان لقيمة قديمة (مثل اسم
+  // فاتورة سابقة) قبل أن يلتقطه iОS — فيخرج الملف باسم خاطئ. نستعيد فقط عند afterprint
+  // (سطح المكتب) وإلى عنوان ثابت، لا إلى قيمة ملتقطة قد تكون قديمة.
+  document.title = pdfFileName();
+  window.addEventListener('afterprint', () => { document.title = APP_TITLE; }, { once: true });
   try {
     if(typeof window.print === 'function') window.print();
     else throw new Error('no-print');
   } catch {
-    restore();
+    document.title = APP_TITLE;
     toast('لإتمام الطباعة: افتح الصفحة في Safari ثم زر المشاركة ⬆️ واختر «طباعة»');
   }
 }

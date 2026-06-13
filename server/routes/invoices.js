@@ -176,7 +176,7 @@ export function mountInvoices(app) {
       const total = parsedRows.reduce((acc, d) => acc + num(d[cfgKey]), 0);
       const count = parsedRows.filter(d => !isEmpty(d)).length;
 
-      list.push({
+      const item = {
         id: inv.id,
         type: inv.type,
         month: Number(inv.month || 0),
@@ -185,7 +185,25 @@ export function mountInvoices(app) {
         created_at: inv.created_at,
         count,
         total,
-      });
+      };
+
+      // الإيرادات: مجاميع ثلاثة على البطاقة (إيجارات / محصَّل / متبقي)
+      // المتبقي الفعلي = القيمة اليدوية إن وُجدت، وإلا (الإيجار − المدفوع) بحدّ أدنى صفر — مطابق لحساب الواجهة.
+      if (inv.type === 'rev') {
+        let rentSum = 0, paidSum = 0, remSum = 0;
+        for (const d of parsedRows) {
+          const rent = num(d.rent), paid = num(d.paid);
+          const rem = (d.remaining != null && String(d.remaining).trim() !== '')
+            ? num(d.remaining)
+            : Math.max(rent - paid, 0);
+          rentSum += rent; paidSum += paid; remSum += rem;
+        }
+        item.rentSum = rentSum;
+        item.paidSum = paidSum;
+        item.remSum = remSum;
+      }
+
+      list.push(item);
     }
 
     res.json({ invoices: list });

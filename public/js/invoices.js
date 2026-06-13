@@ -159,11 +159,21 @@ function renderList(invoices){
   const cards = invoices.map(inv => {
     const cfg = TYPES[inv.type] || {};
     // الخطابات مستند واحد بلا بنود ولا مجاميع — لا نعرض «عدد البنود» ولا «الإجمالي»
-    const isLetter = inv.type === 'letter';
-    const stats = isLetter
-      ? `<span style="flex-basis:100%;color:#7f8b84">أنشأها: ${escapeHtml(inv.created_by||'')}</span>`
-      : `<span>عدد البنود: <b>${inv.count}</b></span><span>الإجمالي: <b>${fmtMoney(inv.total)}</b></span>
-          <span style="flex-basis:100%;color:#7f8b84">أنشأها: ${escapeHtml(inv.created_by||'')}</span>`;
+    // الإيرادات: نعرض المجاميع الثلاثة (إيجارات / محصَّل / متبقي) بدل إجمالي واحد مضلِّل
+    const author = `<span style="flex-basis:100%;color:#7f8b84">أنشأها: ${escapeHtml(inv.created_by||'')}</span>`;
+    let stats;
+    if(inv.type === 'letter'){
+      stats = author;
+    } else if(inv.type === 'rev'){
+      stats = `<span style="flex-basis:100%">عدد البنود: <b>${inv.count}</b></span>
+          <span style="flex-basis:100%">إجمالي الإيجارات: <b>${fmtMoney(inv.rentSum||0)}</b></span>
+          <span style="flex-basis:100%">إجمالي المُحصَّل: <b>${fmtMoney(inv.paidSum||0)}</b></span>
+          <span style="flex-basis:100%">إجمالي المتبقي: <b style="color:#b7352b">${fmtMoney(inv.remSum||0)}</b></span>
+          ${author}`;
+    } else {
+      stats = `<span>عدد البنود: <b>${inv.count}</b></span><span>الإجمالي: <b>${fmtMoney(inv.total)}</b></span>
+          ${author}`;
+    }
     return `<div class="inv-card ${cfg.theme}" data-open="${inv.id}">
       <div class="stripe"></div>
       <div class="body">

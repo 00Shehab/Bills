@@ -36,6 +36,7 @@ export const TYPES = {
       {key:'recipient',label:'المستلم',type:'text'},{key:'date',label:'تاريخ الدفع',type:'date'},
       {key:'notes',label:'الملاحظات',type:'text'} ] },
   rev: { title:'فاتورة الإيرادات', theme:'rev', sumKey:'paid', sumLabel:'إجمالي الإيرادات', initial:30,
+    multiSum:[ {label:'إجمالي الإيجارات', key:'rentSum'}, {label:'إجمالي المُحصَّل', key:'paidSum'}, {label:'إجمالي المتبقي', key:'remSum'} ],
     sub:'جدول تنظيم وتحصيل الإيرادات الشهرية للمحلات التجارية', section:null, cols:[
       {key:'shop',label:'اسم المحل',type:'text',ic:'shop'},{key:'rent',label:'قيمة الإيجار',type:'amount',ic:'tag'},
       {key:'due',label:'استحقاق الدفع',type:'date',ic:'cal'},{key:'paid',label:'المدفوع',type:'amount',ic:'money'},
@@ -335,6 +336,16 @@ function renderTable(inv, cfg){
 }
 function renderTotal(cfg){
   const icon = `<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>`;
+  if(cfg.multiSum){
+    return `<div class="summary-area ${cfg.theme}">
+      <div class="summary-multi ${cfg.theme}">
+        ${cfg.multiSum.map(s=>`<div class="summary-cell ${s.key==='remSum'?'rem':''}">
+          <span class="summary-mlabel">${s.label}</span>
+          <span class="summary-mvalue" id="sum_${s.key}">0 ريال</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }
   return `<div class="summary-area ${cfg.theme}">
     <div class="summary-box ${cfg.theme}">
       <span class="summary-label"><span class="summary-ic">${icon}</span>${cfg.sumLabel}</span>
@@ -428,6 +439,19 @@ function renderLetter(inv){
 function updateTotal(){
   if(!current) return;
   const cfg = TYPES[current.invoice.type];
+  if(cfg.multiSum){
+    let rentSum=0, paidSum=0, remSum=0;
+    for(const r of current.rows){
+      const d = r.data || {};
+      const rent = toNum(d.rent), paid = toNum(d.paid);
+      // المتبقي الفعلي: القيمة اليدوية إن وُجدت، وإلا الحساب التلقائي (الإيجار − المدفوع)
+      const rem = (d.remaining != null && String(d.remaining).trim() !== '') ? toNum(d.remaining) : Math.max(rent - paid, 0);
+      rentSum += rent; paidSum += paid; remSum += rem;
+    }
+    const map = { rentSum, paidSum, remSum };
+    cfg.multiSum.forEach(s => { const el = $(`#sum_${s.key}`); if(el) el.textContent = fmtMoney(map[s.key]); });
+    return;
+  }
   const total = current.rows.reduce((a,r)=> a + toNum(r.data?.[cfg.sumKey]), 0);
   const el = $('#invTotal'); if(el) el.textContent = fmtMoney(total);
 }

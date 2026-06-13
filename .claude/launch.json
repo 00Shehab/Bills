@@ -1,11 +1,6 @@
 {
   "version": "0.0.1",
   "configurations": [
-    {
-      "name": "bills",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["--env-file-if-exists=.env", "server/index.js"],
-      "port": 8765
-    }
+    { "name": "static-harness", "runtimeExecutable": "node", "runtimeArgs": ["_static.mjs"], "port": 8799 }
   ]
 }

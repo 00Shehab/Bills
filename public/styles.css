@@ -846,13 +846,12 @@ select {
   font-weight:700;
   background:#fbf9f0 !important;
 }
-/* عمود «المتبقي»: يُحسب تلقائيًا (لون باهت) لكنه قابل للتعديل اليدوي (يصبح بلون كامل عند التعديل) */
-.grid td.edit.autofill { background:#fbf9f0 !important; font-weight:700; }
+/* عمود «المتبقي»: يُحسب تلقائيًا لكنه قابل للتعديل اليدوي.
+   بلا أي خلفية ملوّنة — يأخذ خلفية الصف العادية كبقية الخلايا.
+   القيمة التلقائية بلون رمادي خفيف، والقيمة المُعدّلة يدويًا بلون كامل واضح. */
+.grid td.edit.autofill { font-weight:700; }
 .grid td.edit.autofill:not([data-manual]) { color:#8a978c; }
 .grid td.edit.autofill[data-manual] { color:#1f3428; }
-.grid td.edit.autofill[data-manual]::after {
-  content:"✎"; font-size:10px; color:var(--brand-gold); margin-inline-start:5px; vertical-align:middle; opacity:.85;
-}
 .grid .col-actions {
   width: 48px;
   background:#fff !important;

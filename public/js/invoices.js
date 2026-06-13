@@ -39,7 +39,7 @@ export const TYPES = {
     sub:'جدول تنظيم وتحصيل الإيرادات الشهرية للمحلات التجارية', section:null, cols:[
       {key:'shop',label:'اسم المحل',type:'text',ic:'shop'},{key:'rent',label:'قيمة الإيجار',type:'amount',ic:'tag'},
       {key:'due',label:'استحقاق الدفع',type:'date',ic:'cal'},{key:'paid',label:'المدفوع',type:'amount',ic:'money'},
-      {key:'remaining',label:'المتبقي',type:'amount',computed:remainingRevenue,showZero:true,ic:'coins'},
+      {key:'remaining',label:'المتبقي',type:'amount',autoFill:remainingRevenue,showZero:true,ic:'coins'},
       {key:'voucher',label:'رقم السند',type:'number',ic:'receipt'},{key:'notes',label:'الملاحظات',type:'text',ic:'pen'} ] },
   other: { title:'مصاريف أخرى', theme:'grn', sumKey:'amount', sumLabel:'إجمالي المصروفات', initial:30,
     sub:'مصاريف شهرية متنوعة', section:null, totalStyle:'box', signature:'other', cols:[
@@ -258,9 +258,12 @@ function applyPrintOrientation(){
   const cfg = TYPES[current?.invoice?.type] || {};
   const portrait = cfg.layout === 'receipt' || cfg.layout === 'letter';
   const orient = portrait ? 'portrait' : 'landscape';
+  // الهامش هنا يجب أن يطابق حسابات العرض بالمليمتر في styles.css
+  // أفقي: 297 − 2×10 = 277mm ، عمودي: 210 − 2×12 = 186mm
+  const margin = portrait ? '12mm' : '10mm';
   let st = document.getElementById('printPageStyle');
   if(!st){ st = document.createElement('style'); st.id = 'printPageStyle'; document.head.appendChild(st); }
-  st.textContent = `@page { size: A4 ${orient}; margin: ${portrait ? '12mm' : '8mm'}; }`;
+  st.textContent = `@page { size: A4 ${orient}; margin: ${margin}; }`;
   document.documentElement.classList.toggle('print-portrait', portrait);
   document.documentElement.classList.toggle('print-landscape', !portrait);
 }
@@ -310,11 +313,18 @@ function renderTable(inv, cfg){
     const r = rowAtPos(i), data = r?.data || {};
     h += `<tr data-pos="${i}"${r?` data-rowid="${r.id}"`:''}><td class="meem">${i+1}${r?`<button class="row-del" data-delrow="${r.id}" title="حذف البند">×</button>`:''}</td>`;
     cfg.cols.forEach(c=>{
-      const val = c.computed ? c.computed(data) : (data[c.key] || '');
-      const disp = displayValue(c.type, val, c.showZero);
-      if(c.computed){
+      if(c.autoFill){
+        // عمود يُحسب تلقائيًا (المتبقي) لكنه قابل للتعديل اليدوي.
+        // إن وُجدت قيمة محفوظة في data ⇒ تعديل يدوي يُعرض كما هو؛ وإلا تُعرض القيمة التلقائية.
+        const manual = data[c.key] != null && String(data[c.key]).trim() !== '';
+        const val = manual ? data[c.key] : c.autoFill(data);
+        const disp = displayValue(c.type, val, c.showZero);
+        h += `<td class="edit autofill" contenteditable="true" data-key="${c.key}" data-type="${c.type}" data-label="${c.label}" data-autofill="1"${manual?' data-manual="1"':''}>${escapeHtml(disp)}</td>`;
+      } else if(c.computed){
+        const disp = displayValue(c.type, c.computed(data), c.showZero);
         h += `<td class="computed" data-computed="${c.key}" data-label="${c.label}">${escapeHtml(disp)}</td>`;
       } else {
+        const disp = displayValue(c.type, data[c.key] || '', c.showZero);
         h += `<td class="edit" contenteditable="true" data-key="${c.key}" data-type="${c.type}" data-label="${c.label}">${escapeHtml(disp)}</td>`;
       }
     });
@@ -475,9 +485,46 @@ function rowDataFromTr(tr){
   tr.querySelectorAll('td.edit').forEach(c=>{
     const key=c.dataset.key, type=c.dataset.type;
     const v = cleanValue(type, c.textContent);
+    if(c.dataset.autofill){
+      // لا نحفظ القيمة التلقائية؛ نحفظ فقط عند التعديل اليدوي (data-manual)
+      if(c.dataset.manual && v) data[key]=v;
+      return;
+    }
     if(v) data[key]=v;
   });
   return data;
+}
+
+/* ---------- أعمدة الحساب التلقائي القابلة للتعديل (مثل «المتبقي») ---------- */
+const autoFillCol = cfg => cfg?.cols?.find(c => c.autoFill);
+// بيانات الصف من الخلايا العادية فقط (لحساب القيمة التلقائية بمعزل عن خلية المتبقي)
+function rowDataBase(tr){
+  const data = {};
+  tr.querySelectorAll('td.edit').forEach(c=>{
+    if(c.dataset.autofill) return;
+    const v = cleanValue(c.dataset.type, c.textContent);
+    if(v) data[c.dataset.key]=v;
+  });
+  return data;
+}
+// عند تعديل خلية المتبقي نفسها: نقرّر يدوي أم تلقائي
+function syncAutoFillEdited(td, tr, col){
+  const auto = String(col.autoFill(rowDataBase(tr)) ?? '');
+  const typed = cleanValue(td.dataset.type, td.textContent);
+  if(!typed || typed === auto){
+    delete td.dataset.manual;                                   // عاد تلقائيًا
+    td.textContent = displayValue(td.dataset.type, auto, col.showZero);
+  } else {
+    td.dataset.manual = '1';                                    // تعديل يدوي يبقى
+    td.textContent = displayValue(td.dataset.type, typed, col.showZero);
+  }
+}
+// عند تعديل خلية أخرى (الإيجار/المدفوع): حدّث المتبقي تلقائيًا ما لم يكن يدويًا
+function refreshAutoFillCells(tr, cfg){
+  const col = autoFillCol(cfg); if(!col) return;
+  const cell = tr.querySelector(`td.edit[data-autofill][data-key="${col.key}"]`);
+  if(!cell || cell.dataset.manual) return;
+  cell.textContent = displayValue(col.type, col.autoFill(rowDataBase(tr)), col.showZero);
 }
 function receiptDataFromDom(){
   const data = {};
@@ -520,11 +567,19 @@ async function onCellBlur(e){
 
   const tr = td.closest('tr'); const pos = +tr.dataset.pos;
   const cfg = TYPES[current.invoice.type];
+  const col = autoFillCol(cfg);
+
+  // طبّع الخلية المعدّلة + زامن خلية الحساب التلقائي (المتبقي)
+  if(col && td.dataset.autofill){
+    syncAutoFillEdited(td, tr, col);            // الخلية المعدّلة هي «المتبقي»
+  } else {
+    td.textContent = displayValue(td.dataset.type, cleanValue(td.dataset.type, td.textContent));
+    if(col) refreshAutoFillCells(tr, cfg);      // عُدّلت خلية أخرى ⇒ حدّث «المتبقي» تلقائيًا
+  }
+
   const data = rowDataFromTr(tr);
   const hasDate = cfg.cols.some(c=>c.key==='date');
   if(hasDate && !isEmptyData(data) && !data.date) data.date = todayISO();
-
-  td.textContent = displayValue(td.dataset.type, cleanValue(td.dataset.type, td.textContent));
   if(data.date){ const dc = tr.querySelector('td.edit[data-key="date"]'); if(dc && !dc.textContent.trim()) dc.textContent = fmtDate(data.date); }
 
   try { await upsertRow(pos, data, tr); }

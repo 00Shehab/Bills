@@ -270,60 +270,112 @@ select { font-family: inherit; padding: 8px 10px; border: 1px solid #cfcfd4; bor
 }
 
 /* ===================== الطباعة / حفظ PDF ===================== */
-/* الهدف: تخرج الطباعة (من الكمبيوتر أو الأيفون) بنفس تصميم الكمبيوتر،
-   متناسقة على ورق A4 مع ترقيم صفحات نظيف وإمكانية الحفظ كـ PDF.
-   ملاحظة: نقاط توقّف الجوال كلها screen-only فلا تطبَّق هنا أبدًا. */
-@page { size: A4 landscape; margin: 8mm; }   /* الاتجاه الفعلي يُحقَن من JS حسب نوع الفاتورة */
+/* الهدف: طباعة متطابقة تمامًا على كل الأجهزة (أيفون/جالكسي/شاومي/كمبيوتر)
+   على ورق A4 كامل، بخط كبير واضح، بنفس تصميم الكمبيوتر.
+
+   لماذا تختلف الطباعة بين الأجهزة؟
+   - أيفون (Safari) يتجاهل أحجام px ويملأ عرض الورقة (فيكبّر/يصغّر النص)،
+     لكنه يحترم الوحدات الفيزيائية (pt / mm).
+   - أندرويد (Chrome على شاومي/جالكسي) «يصغّر ليلائم» حسب عرض الشاشة.
+   الحل: عرض الورقة مثبّت بالمليمتر = مساحة الطباعة الفعلية،
+   وكل الخطوط بوحدة pt، وإلغاء أي تموضع مطلق/تحويلات/وحدات vw.
+   اتجاه الورقة (أفقي/عمودي) يُحقن من JS حسب نوع الفاتورة. */
+@page { size: A4 landscape; margin: 10mm; }
 
 @media print {
   html, body {
     background: #fff !important;
-    margin: 0 !important;
-    padding: 0 !important;
+    margin: 0 !important; padding: 0 !important;
+    -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important;
   }
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  * {
+    -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+    box-shadow: none !important; text-shadow: none !important;
+  }
 
   /* إخفاء كل عناصر الواجهة عدا الورقة */
   .topbar, .invoice-toolbar, .modal-overlay, .toast, .add-row-btn,
   .signature-view, #loginView, #pickView, #adminView,
-  .row-del, .col-actions { display: none !important; }
+  .row-del, .col-actions, .bell-wrap, .add-wrap { display: none !important; }
 
-  /* الورقة تملأ عرض الصفحة */
-  .invoice-view { max-width: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+  /* عرض الورقة مثبّت بالمليمتر = مساحة الطباعة (يمنع تصغير/تكبير الجوال) */
+  .invoice-view { max-width: none !important; width: auto !important; margin: 0 !important; padding: 0 !important; }
   .sheet {
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    border: none !important;
+    border: none !important; border-radius: 0 !important;
     background: #fff !important;
-    width: 100% !important;
-    padding: 4mm 4mm 6mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
   }
+  html.print-landscape .sheet { width: 277mm !important; }   /* 297 − 2×10mm */
+  html.print-portrait  .sheet { width: 186mm !important; }   /* 210 − 2×12mm */
 
-  /* الجدول: تكرار رأس الجدول في كل صفحة + عدم تقسيم الصفوف بين صفحتين */
-  .table-shell { overflow: visible !important; border-radius: 0 !important; }
-  table.grid { page-break-inside: auto; }
+  /* ترويسة ثابتة بلا تموضع مطلق (سبب «طيران الزينة» على الأيفون) */
+  .sheet-accent { display: none !important; }
+  .sheet-letterhead {
+    position: static !important;
+    display: flex !important; flex-direction: column !important; align-items: center !important;
+    min-height: 0 !important; padding: 0 !important; gap: 1.5mm !important; margin-bottom: 3mm !important;
+    text-align: center !important;
+  }
+  .sheet-brand { position: static !important; width: 26mm !important; margin: 0 auto !important; }
+  .sheet-logo-img { width: 100% !important; height: auto !important; }
+  .sheet-heading h1 { font-size: 16pt !important; line-height: 1.35 !important; margin: 0 !important; }
+  .sheet-heading p  { font-size: 10.5pt !important; margin: 1mm 0 0 !important; }
+  .sheet-letterhead.grn .sheet-heading h1 { font-size: 22pt !important; }
+  .ornament-line { margin: 0 0 3mm !important; }
+  .ornament-line span { width: 3mm !important; height: 3mm !important; }
+  .section-ribbon { font-size: 12pt !important; padding: 1.5mm 6mm !important; margin: 0 0 2.5mm auto !important; }
+
+  /* الجدول: تخطيط ثابت، خطوط pt كبيرة، حدود واضحة، تكرار الرأس، صفوف لا تنقسم */
+  .table-shell { border: none !important; border-radius: 0 !important; overflow: visible !important; background: transparent !important; }
+  table.grid { width: 100% !important; table-layout: fixed !important; border-collapse: collapse !important; margin: 0 !important; }
   table.grid thead { display: table-header-group !important; }
   table.grid tr { page-break-inside: avoid !important; break-inside: avoid !important; }
-  .summary-area, .signature-slots, .receipt-paybox { page-break-inside: avoid !important; break-inside: avoid !important; }
-
-  /* أظهر كل الصفوف (حتى الفارغة) تمامًا كتصميم الكمبيوتر، وأبطل أي تحوّل لبطاقات */
-  .grid tbody tr { display: table-row !important; }
-  .grid thead { display: table-header-group !important; }
-  .grid td.meem::before,
-  .grid td.edit::before,
-  .grid td.computed::before { content: none !important; }
-
-  /* السندات والخطابات: ورقة واحدة بعرض الصفحة بلا قصّ */
-  .receipt-page, .letter-page {
-    max-width: none !important;
-    width: 100% !important;
-    margin: 0 !important;
-    min-height: auto !important;
-    box-shadow: none !important;
-    outline: none !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
+  .grid th, .grid td {
+    border: 0.25mm solid #7a7a7a !important;
+    height: auto !important;
+    padding: 1.6mm 1.2mm !important;
+    font-size: 10.5pt !important;
+    line-height: 1.3 !important;
+    color: #16271d !important;
   }
+  .grid thead th {
+    font-size: 11pt !important;
+    color: #fff !important;
+    box-shadow: none !important;
+    border-color: #2a6a45 !important;
+  }
+  .grid thead th .th-ic { display: none !important; }   /* أيقونات الرأس تشوّش الطباعة الصغيرة */
+  .grid td.meem, .grid th.meem { width: 9mm !important; font-size: 10.5pt !important; }
+  .grid td.edit, .grid td.computed { line-height: 1.3 !important; }
+  .grid td.edit.autofill::after { content: none !important; }   /* لا نطبع علامة القلم */
+  .grid td.meem::before, .grid td.edit::before, .grid td.computed::before { content: none !important; }
+
+  /* اعرض أول 12 صفًا دائمًا + أي صف ممتلئ بعده، وأخفِ الصفوف الفارغة الزائدة
+     (تبقى الورقة صفحة واحدة بخط كبير واضح دون إهدار ورق؛ ولا تُفقد أي بيانات
+     لأن الصفوف الممتلئة تظهر دائمًا). الأجهزة القديمة بلا :has تعرض كل الصفوف. */
+  .grid tbody tr:nth-child(n+13):not(:has(td.edit:not(:empty))) { display: none !important; }
+
+  /* الإجماليات والتواقيع: لا تنقسم بين صفحتين */
+  .summary-area { margin-top: 4mm !important; padding-top: 2mm !important; page-break-inside: avoid !important; break-inside: avoid !important; }
+  .summary-box { min-width: 0 !important; width: auto !important; display: inline-flex !important; }
+  .summary-label { font-size: 11pt !important; min-height: 0 !important; padding: 2mm 6mm !important; }
+  .summary-ic { width: 7mm !important; height: 7mm !important; }
+  .summary-value { font-size: 12pt !important; min-width: 38mm !important; padding: 2mm 6mm !important; }
+  .signature-slots { gap: 10mm !important; margin-top: 8mm !important; page-break-inside: avoid !important; break-inside: avoid !important; }
+  .signature-slot { min-width: 0 !important; max-width: none !important; }
+  .signature-caption { font-size: 10pt !important; }
+  .signature-line { height: 14mm !important; }
+  .signature-word { font-size: 8.5pt !important; }
+
+  /* السندات والخطابات: عرض ثابت بالمليمتر، صفحة واحدة بلا قصّ */
+  .receipt-page, .letter-page {
+    max-width: none !important; min-height: 0 !important; margin: 0 auto !important;
+    box-shadow: none !important; outline: none !important;
+    page-break-inside: avoid !important; break-inside: avoid !important;
+  }
+  html.print-portrait .receipt-page, html.print-portrait .letter-page { width: 186mm !important; }
+  .receipt-paybox { page-break-inside: avoid !important; break-inside: avoid !important; }
 }
 
 /* ===================== المصادقة (دخول + اختيار هوية) ===================== */
@@ -373,7 +425,17 @@ select { font-family: inherit; padding: 8px 10px; border: 1px solid #cfcfd4; bor
 .bi-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
 .bi-dot.add { background: #27ae60; } .bi-dot.edit { background: #2e74c7; }
 .bi-dot.delete { background: #c0392b; } .bi-dot.create_invoice { background: #27ae60; } .bi-dot.delete_invoice { background: #c0392b; }
+.bi-dot.multi { background: linear-gradient(135deg, var(--brand-green), var(--brand-gold)); }
+.bi-count { font-size: 10.5px; font-weight: 700; color: var(--brand-green); background: #eaf3ee; border-radius: 999px; padding: 1px 8px; }
 .bi-sum { font-size: 12.5px; color: #666; margin-top: 3px; }
+/* شرائح الملخّص (أضاف/عدّل/حذف) داخل إشعار المجموعة */
+.bi-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.bi-chip { font-size: 11.5px; font-weight: 700; border-radius: 8px; padding: 3px 9px; line-height: 1.5; white-space: nowrap; }
+.bi-chip.add { background: #e3f6e9; color: #1e7e44; }
+.bi-chip.edit { background: #e1eefb; color: #1f5fa8; }
+.bi-chip.del { background: #fde7e4; color: #b13225; }
+.bell-item.group { border-inline-start: 3px solid transparent; }
+.bell-item.group.unread { border-inline-start-color: var(--brand-gold); }
 .bi-detail, .bi-brief { font-size: 11.5px; color: #888; margin-top: 4px; line-height: 1.6; }
 .bi-diff .dk { color: #555; font-weight: 700; }
 .bi-diff .old { color: #c0392b; text-decoration: line-through; } .bi-diff .new { color: #27ae60; font-weight: 700; }
@@ -783,6 +845,13 @@ select {
   color:#526052;
   font-weight:700;
   background:#fbf9f0 !important;
+}
+/* عمود «المتبقي»: يُحسب تلقائيًا (لون باهت) لكنه قابل للتعديل اليدوي (يصبح بلون كامل عند التعديل) */
+.grid td.edit.autofill { background:#fbf9f0 !important; font-weight:700; }
+.grid td.edit.autofill:not([data-manual]) { color:#8a978c; }
+.grid td.edit.autofill[data-manual] { color:#1f3428; }
+.grid td.edit.autofill[data-manual]::after {
+  content:"✎"; font-size:10px; color:var(--brand-gold); margin-inline-start:5px; vertical-align:middle; opacity:.85;
 }
 .grid .col-actions {
   width: 48px;
@@ -1318,7 +1387,7 @@ body.signature-active { overflow:hidden; }
   .meta-pick select { flex:1; min-width:0; }
 }
 
-/* تفاصيل طباعة إضافية للسند: ارتفاع مريح في الورقة العمودية */
+/* تفاصيل طباعة إضافية للسند: ارتفاع مريح يملأ الورقة العمودية */
 @media print {
-  .print-portrait .receipt-page { min-height: 235mm; }
+  html.print-portrait .receipt-page { min-height: 245mm !important; }
 }

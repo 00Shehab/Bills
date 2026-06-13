@@ -380,6 +380,28 @@ select { font-family: inherit; padding: 8px 10px; border: 1px solid #cfcfd4; bor
   }
   html.print-portrait .receipt-page, html.print-portrait .letter-page { width: 186mm !important; }
   .receipt-paybox { page-break-inside: avoid !important; break-inside: avoid !important; }
+
+  /* خطاب الهاشمي: ضمان صفحة A4 واحدة بأحجام pt/mm ثابتة عبر الأجهزة،
+     مع إزالة خلفية الأسطر المتدرّجة (repeating-linear-gradient) التي
+     يصيّرها iOS/Safari مستطيلاتٍ سوداء عند الطباعة بسبب print-color-adjust:exact. */
+  .letter-page { padding: 7mm 9mm !important; }
+  .letter-frame { inset: 2mm !important; }
+  .letter-head { min-height: 30mm !important; margin-bottom: 1mm !important; }
+  .letter-logo { width: 24mm !important; }
+  .letter-logo img { height: 18mm !important; }
+  .letter-basmala { font-size: 12.5pt !important; padding-top: 1mm !important; }
+  .letter-fields { top: 10mm !important; gap: 1.2mm !important; font-size: 10pt !important; }
+  .letter-edit { min-width: 28mm !important; }
+  .letter-body {
+    background-image: none !important; background-color: #fff !important;
+    min-height: 0 !important; margin: 2mm 1mm !important; padding: 0 !important;
+    font-size: 10.5pt !important; line-height: 1.55 !important; color: #000 !important;
+    break-inside: avoid !important;
+  }
+  .letter-foot { padding-top: 1mm !important; gap: 1.5mm !important; }
+  .letter-admin { font-size: 10.5pt !important; }
+  .letter-sign-row { gap: 3mm !important; font-size: 10pt !important; min-width: 68mm !important; }
+  .letter-sign .signature-line { min-height: 9mm !important; }
 }
 
 /* ===================== المصادقة (دخول + اختيار هوية) ===================== */

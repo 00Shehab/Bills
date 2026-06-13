@@ -158,14 +158,19 @@ function renderList(invoices){
   }
   const cards = invoices.map(inv => {
     const cfg = TYPES[inv.type] || {};
+    // الخطابات مستند واحد بلا بنود ولا مجاميع — لا نعرض «عدد البنود» ولا «الإجمالي»
+    const isLetter = inv.type === 'letter';
+    const stats = isLetter
+      ? `<span style="flex-basis:100%;color:#7f8b84">أنشأها: ${escapeHtml(inv.created_by||'')}</span>`
+      : `<span>عدد البنود: <b>${inv.count}</b></span><span>الإجمالي: <b>${fmtMoney(inv.total)}</b></span>
+          <span style="flex-basis:100%;color:#7f8b84">أنشأها: ${escapeHtml(inv.created_by||'')}</span>`;
     return `<div class="inv-card ${cfg.theme}" data-open="${inv.id}">
       <div class="stripe"></div>
       <div class="body">
         <div class="card-top"><img src="${LOGO_SRC}" alt="" class="card-logo"><span class="kind-badge">${escapeHtml(cfg.title||inv.type)}</span></div>
         <h3>${escapeHtml(cfg.title||inv.type)}</h3>
         <div class="month">${MONTHS[inv.month]} ${inv.year}</div>
-        <div class="stats"><span>عدد البنود: <b>${inv.count}</b></span><span>الإجمالي: <b>${fmtMoney(inv.total)}</b></span>
-          <span style="flex-basis:100%;color:#7f8b84">أنشأها: ${escapeHtml(inv.created_by||'')}</span></div>
+        <div class="stats">${stats}</div>
       </div>
       <div class="row-actions"><button class="open" data-open="${inv.id}">فتح الفاتورة</button>
         <button class="del" data-del="${inv.id}">حذف</button></div></div>`;

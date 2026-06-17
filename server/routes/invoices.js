@@ -162,6 +162,14 @@ async function loadInvoiceWithRows(id) {
   };
 }
 
+// =====================================================
+// Helpers — استخراج المستخدم من ترويسة البوابة
+// =====================================================
+function userFromReq(req) {
+  const u = req.headers['x-user'];
+  return typeof u === 'string' && u.trim() ? u.trim() : 'user';
+}
+
 export function mountInvoices(app) {
   // قائمة الفواتير مع العدد والإجمالي
   app.get('/api/invoices', requireUser, ah(async (req, res) => {
@@ -218,7 +226,7 @@ export function mountInvoices(app) {
 
     const id = 'inv_' + randomUUID();
     const t = now();
-    const u = req.session.user || req.session.activeUser || 'user';
+    const u = userFromReq(req);
     const month = Number(req.body?.month);
     const year = Number(req.body?.year);
     const meta = JSON.stringify(req.body?.meta ?? {});
@@ -263,7 +271,7 @@ export function mountInvoices(app) {
     const year = req.body?.year != null ? Number(req.body.year) : Number(inv.year);
     const meta = req.body?.meta != null ? JSON.stringify(req.body.meta || {}) : (inv.meta || '{}');
     const t = now();
-    const u = req.session.user || req.session.activeUser || 'user';
+    const u = userFromReq(req);
 
     await updInvoice.run(month, year, meta, u, t, inv.id);
 
@@ -288,7 +296,7 @@ export function mountInvoices(app) {
     }
 
     const t = now();
-    const u = req.session.user || req.session.activeUser || 'user';
+    const u = userFromReq(req);
 
     await delInvoice.run(u, t, inv.id);
     await delInvoiceRows.run(u, t, inv.id);
@@ -311,7 +319,7 @@ export function mountInvoices(app) {
 
     const id = 'row_' + randomUUID();
     const t = now();
-    const u = req.session.user || req.session.activeUser || 'user';
+    const u = userFromReq(req);
     const data = req.body?.data || {};
     const position = Number(req.body?.position) || 0;
 
@@ -359,7 +367,7 @@ export function mountInvoices(app) {
 
     const data = req.body?.data || {};
     const t = now();
-    const u = req.session.user || req.session.activeUser || 'user';
+    const u = userFromReq(req);
 
     await updRowData.run(JSON.stringify(data), u, t, r.id);
 
@@ -385,7 +393,7 @@ export function mountInvoices(app) {
     }
 
     const t = now();
-    const u = req.session.user || req.session.activeUser || 'user';
+    const u = userFromReq(req);
 
     await delRow.run(u, t, r.id);
 

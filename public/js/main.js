@@ -1,4 +1,6 @@
-// الإقلاع والتوجيه بين الشاشات + تدفّق المصادقة
+// الإقلاع والتوجيه بين الشاشات — يعتمد على بوابة Python للمصادقة
+// البوابة تحقن: X-Role (admin/user) + X-User (اسم المستخدم)
+// Bills لا يملك تسجيل دخول خاصاً بعد الآن.
 import { api } from './api.js';
 import { $, showView, toast, escapeHtml } from './ui.js';
 import { initInvoices } from './invoices.js';
@@ -9,6 +11,7 @@ import { initAdmin } from './admin.js';
 let activeUser = null;
 let appInited = false;
 
+/* ---------- الإقلاع ---------- */
 async function boot() {
   let me;
   try { me = await api.get('/api/me'); } catch { me = { role: null }; }
@@ -18,44 +21,41 @@ async function boot() {
 function route(me) {
   if (me.role === 'admin') return enterAdmin();
   if (me.role === 'user')  return enterApp(me.user);
-  if (me.stage === 'pick') { renderPick(me.users || []); return showView('pickView'); }
+  // لا جلسة — البوابة هي المسؤولة عن الدخول
   showView('loginView');
-  setTimeout(() => $('#passInput')?.focus(), 50);
+  renderGatewayMessage();
 }
 
-/* ---------- كلمة السر ---------- */
-$('#loginForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  const err = $('#loginError'); err.hidden = true;
-  const btn = $('#loginBtn'); btn.disabled = true;
-  try {
-    const r = await api.post('/api/login', { password: $('#passInput').value });
-    $('#passInput').value = '';
-    if (r.mode === 'admin') enterAdmin();
-    else { renderPick(r.users || []); showView('pickView'); }
-  } catch (ex) {
-    err.textContent = ex.data?.error || 'تعذّر الدخول';
-    err.hidden = false;
-  } finally { btn.disabled = false; }
-});
+/* ---------- رسالة البوابة (بدلاً من تسجيل الدخول) ---------- */
+function renderGatewayMessage() {
+  const box = $('#loginView');
+  if (!box) return;
 
-/* ---------- اختيار الهوية ---------- */
-function renderPick(users) {
-  const box = $('#userButtons'); box.innerHTML = '';
-  users.forEach(u => {
-    const b = document.createElement('button');
-    b.className = 'user-pick';
-    b.innerHTML = `<span class="u-ava">${escapeHtml(u.slice(0, 1))}</span><span>${escapeHtml(u)}</span>`;
-    b.addEventListener('click', async () => {
-      try { const r = await api.post('/api/select-user', { name: u }); enterApp(r.user); }
-      catch (ex) { toast(ex.data?.error || 'تعذّر الاختيار'); }
-    });
-    box.appendChild(b);
-  });
+  // إعادة بناء محتوى شاشة الدخول لتوضيح أن البوابة تتولى المصادقة
+  const existingForm = $('#loginForm');
+  if (existingForm) existingForm.style.display = 'none';
+
+  const existingError = $('#loginError');
+  if (existingError) existingError.hidden = true;
+
+  let msg = $('#gatewayMsg');
+  if (!msg) {
+    msg = document.createElement('div');
+    msg.id = 'gatewayMsg';
+    msg.style.cssText = 'text-align:center; padding:24px; color:#4a5568;';
+    box.appendChild(msg);
+  }
+  msg.innerHTML = `
+    <div style="font-size:48px; margin-bottom:16px;">🔐</div>
+    <h2 style="margin:0 0 8px;">الدخول عبر البوابة</h2>
+    <p style="margin:0; color:#718096;">
+      المصادقة تتم عبر نظام fin-ops-os.<br>
+      إذا كنت ترى هذه الرسالة،<br>
+      الرجاء <a href="/" style="color:#3182ce;">الدخول من البوابة الرئيسية</a>.
+    </p>
+  `;
+  msg.hidden = false;
 }
-$('#backToLogin').addEventListener('click', async () => {
-  await api.post('/api/logout'); showView('loginView'); $('#passInput').focus();
-});
 
 /* ---------- التطبيق ---------- */
 async function enterApp(user) {
@@ -64,12 +64,18 @@ async function enterApp(user) {
   showView('appView');
   if (!appInited) { appInited = true; await initInvoices(); initBell(); startRealtime(user); }
 }
-$('#logoutBtn').addEventListener('click', async () => { await api.post('/api/logout'); location.reload(); });
 
 /* ---------- الأدمن ---------- */
 function enterAdmin() {
   showView('adminView');
   initAdmin();
 }
+
+/* ---------- الخروج — إعادة توجيه للبوابة ---------- */
+$('#logoutBtn').addEventListener('click', async () => {
+  // نستدعي /api/logout (يُرجع ok دائماً) ثم نعيد التحميل
+  try { await api.post('/api/logout'); } catch {}
+  location.href = '/';
+});
 
 boot();

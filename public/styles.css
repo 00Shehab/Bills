@@ -703,6 +703,14 @@ body {
 .inv-card .stats { border-top: 1px solid rgba(187,140,47,.32); margin-top: 10px; padding-top: 10px; }
 .inv-card.letter .stats { border-top: 0; margin-top: 0; padding-top: 0; }   /* الخطاب: سطر واحد فقط، لا داعي لفاصل */
 .inv-card .row-actions { border-top: 1px solid rgba(187,140,47,.30); }
+/* زخرفة شريطية متشابكة (أخضر + ذهبي) — هوية المنصّة — أسفل كل مجموع في بطاقة الإيرادات */
+.inv-card .rev-sum {
+  padding-bottom: 13px;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='150'%20height='18'%20viewBox='0%200%20150%2018'%3E%3Cpath%20d='M6%209%20C32%202%2052%202%2075%209%20C98%2016%20118%2016%20144%209'%20fill='none'%20stroke='%23004f2e'%20stroke-width='1.5'%20stroke-linecap='round'/%3E%3Cpath%20d='M6%209%20C32%2016%2052%2016%2075%209%20C98%202%20118%202%20144%209'%20fill='none'%20stroke='%23bb8c2f'%20stroke-width='1.5'%20stroke-linecap='round'/%3E%3Ccircle%20cx='75'%20cy='9'%20r='1.9'%20fill='%23bb8c2f'/%3E%3Ccircle%20cx='6'%20cy='9'%20r='1.4'%20fill='%23004f2e'/%3E%3Ccircle%20cx='144'%20cy='9'%20r='1.4'%20fill='%23004f2e'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center bottom;
+  background-size: 150px 16px;
+}
 .card-top {
   display:flex;
   align-items:center;

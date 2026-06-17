@@ -167,9 +167,9 @@ function renderList(invoices){
       stats = author;
     } else if(inv.type === 'rev'){
       stats = `<span style="flex-basis:100%">عدد البنود: <b>${inv.count}</b></span>
-          <span style="flex-basis:100%">إجمالي الإيجارات: <b>${fmtMoney(inv.rentSum||0)}</b></span>
-          <span style="flex-basis:100%">إجمالي المُحصَّل: <b>${fmtMoney(inv.paidSum||0)}</b></span>
-          <span style="flex-basis:100%">إجمالي المتبقي: <b style="color:#b7352b">${fmtMoney(inv.remSum||0)}</b></span>
+          <span class="rev-sum" style="flex-basis:100%">إجمالي الإيجارات: <b>${fmtMoney(inv.rentSum||0)}</b></span>
+          <span class="rev-sum" style="flex-basis:100%">إجمالي المُحصَّل: <b>${fmtMoney(inv.paidSum||0)}</b></span>
+          <span class="rev-sum" style="flex-basis:100%">إجمالي المتبقي: <b style="color:#b7352b">${fmtMoney(inv.remSum||0)}</b></span>
           ${author}`;
     } else {
       stats = `<span>عدد البنود: <b>${inv.count}</b></span><span>الإجمالي: <b>${fmtMoney(inv.total)}</b></span>

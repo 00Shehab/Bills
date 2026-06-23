@@ -1,13 +1,6 @@
 // لوحة الأدمن — سجل النشاط + سلة المحذوفات + النسخ الاحتياطية
 // يعمل مع PostgreSQL عبر db.js (async/await)
-import {
-  pool,
-  all,
-  get,
-  run,
-  now,
-  applySchema
-} from '../db.js';
+import { pool, all, get, run, now } from '../db.js';
 import { requireAdmin } from '../auth.js';
 
 const MONTHS = [
@@ -18,6 +11,7 @@ const MONTHS = [
 const TYPE_TITLES = {
   lower: 'فاتورة البيت الأسفل', upper: 'فاتورة البيت الأعلى', rev: 'فاتورة الإيرادات',
   other: 'معاملات أخرى', receipt: 'سند قبض', letter: 'سند الهاشمي',
+  income: 'الدخل', expense: 'المصروفات',
 };
 
 let dailyTimer = null;
@@ -89,22 +83,13 @@ async function q(client, sql, params = []) {
 
 async function withTx(fn) {
   const client = await pool.connect();
-
   try {
-    await applySchema(client);
-
     await client.query('BEGIN');
-
     const result = await fn(client);
-
     await client.query('COMMIT');
-
     return result;
   } catch (error) {
-    try {
-      await client.query('ROLLBACK');
-    } catch {}
-
+    try { await client.query('ROLLBACK'); } catch {}
     throw error;
   } finally {
     client.release();
@@ -126,7 +111,7 @@ async function fetchSnapshotData(client) {
   // مهم: عميل PostgreSQL واحد لا ينفّذ إلا استعلامًا واحدًا في كل مرة — لذا ننفّذها بالتسلسل
   const users = await q(client, `
     SELECT id, display_name, role, created_at, last_login_at
-    FROM bills_users
+    FROM users
     ORDER BY id ASC
   `);
   const invoices = await q(client, `
@@ -214,15 +199,15 @@ async function restoreFromSnapshot(snapshotId, createdBy = 'admin') {
     await q(client, `DELETE FROM activity_log`);
     await q(client, `DELETE FROM invoice_rows`);
     await q(client, `DELETE FROM invoices`);
-    await q(client, `DELETE FROM bills_users`);
+    await q(client, `DELETE FROM users`);
 
-    // bills_users
+    // users
     if (Array.isArray(data.users)) {
       for (const u of data.users) {
         await q(
           client,
           `
-            INSERT INTO bills_users (id, display_name, role, created_at, last_login_at)
+            INSERT INTO users (id, display_name, role, created_at, last_login_at)
             VALUES ($1, $2, $3, $4, $5)
           `,
           [
@@ -234,7 +219,7 @@ async function restoreFromSnapshot(snapshotId, createdBy = 'admin') {
           ]
         );
       }
-      await resetSerial(client, 'bills_users', 'id');
+      await resetSerial(client, 'users', 'id');
     }
 
     // invoices
@@ -350,17 +335,9 @@ async function restoreFromSnapshot(snapshotId, createdBy = 'admin') {
   return snap;
 }
 
-// =====================================================
-// extractActor — استخراج المُنفِّذ من ترويسة البوابة
-// =====================================================
 function extractActor(req) {
-  const user = req.headers['x-user'];
-  const role = req.headers['x-role'];
-  return (typeof user === 'string' && user.trim())
-    ? user.trim()
-    : (typeof role === 'string' && role.trim())
-      ? role.trim()
-      : 'admin';
+  const s = req.session || {};
+  return s.user || s.role || 'admin';
 }
 
 export function mountAdmin(app) {
@@ -485,7 +462,7 @@ export function mountAdmin(app) {
             [
               actor,
               id,
-              `استرجاع الفاتورة \u00AB${invLabel(inv)}\u00BB`,
+              `استرجاع الفاتورة «${invLabel(inv)}»`,
               toJson({ ...inv, status: 'deleted' }),
               toJson({ ...inv, status: 'active' }),
               now(),
@@ -533,7 +510,7 @@ export function mountAdmin(app) {
               actor,
               id,
               row.invoice_id,
-              `استرجاع بند في \u00AB${invLabel(row)}\u00BB`,
+              `استرجاع بند في «${invLabel(row)}»`,
               toJson({ ...row, status: 'deleted' }),
               toJson({ ...row, status: 'active' }),
               now(),

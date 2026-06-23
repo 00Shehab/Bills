@@ -24,17 +24,9 @@ function shape(a) {
   };
 }
 
-// =====================================================
-// Helpers — استخراج المستخدم من ترويسة البوابة
-// =====================================================
-function userFromReq(req) {
-  const u = req.headers['x-user'];
-  return typeof u === 'string' && u.trim() ? u.trim() : 'user';
-}
-
 export function mountActivity(app) {
   app.get('/api/activity', requireUser, ah(async (req, res) => {
-    const me = userFromReq(req);
+    const me = req.session.user;
     const scope = req.query.scope === 'all' ? 'all' : 'unread';
 
     const unreadSql = `
@@ -95,13 +87,13 @@ export function mountActivity(app) {
         VALUES (?, ?, ?)
         ON CONFLICT (username, activity_id) DO NOTHING
       `,
-      [userFromReq(req), Number(req.params.id), now()]
+      [req.session.user, Number(req.params.id), now()]
     );
     res.json({ ok: true });
   }));
 
   app.post('/api/activity/read-all', requireUser, ah(async (req, res) => {
-    const me = userFromReq(req);
+    const me = req.session.user;
 
     const unreadIds = await all(
       `

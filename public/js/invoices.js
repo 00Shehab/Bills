@@ -6,7 +6,6 @@ export const MONTHS = ['يناير','فبراير','مارس','أبريل','ما
                        'أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 
 const LOGO_SRC = 'assets/alhashmi-logo.svg';
-const APP_TITLE = 'نظام المحطة المالي';   // عنوان الصفحة الافتراضي (مطابق لـ index.html)
 
 // أيقونات رؤوس أعمدة الإيرادات (مثل الصورة)
 const ICONS = {
@@ -37,17 +36,24 @@ export const TYPES = {
       {key:'recipient',label:'المستلم',type:'text'},{key:'date',label:'تاريخ الدفع',type:'date'},
       {key:'notes',label:'الملاحظات',type:'text'} ] },
   rev: { title:'فاتورة الإيرادات', theme:'rev', sumKey:'paid', sumLabel:'إجمالي الإيرادات', initial:30,
-    multiSum:[ {label:'إجمالي الإيجارات', key:'rentSum'}, {label:'إجمالي المُحصَّل', key:'paidSum'}, {label:'إجمالي المتبقي', key:'remSum'} ],
     sub:'جدول تنظيم وتحصيل الإيرادات الشهرية للمحلات التجارية', section:null, cols:[
       {key:'shop',label:'اسم المحل',type:'text',ic:'shop'},{key:'rent',label:'قيمة الإيجار',type:'amount',ic:'tag'},
       {key:'due',label:'استحقاق الدفع',type:'date',ic:'cal'},{key:'paid',label:'المدفوع',type:'amount',ic:'money'},
-      {key:'remaining',label:'المتبقي',type:'amount',autoFill:remainingRevenue,showZero:true,ic:'coins'},
+      {key:'remaining',label:'المتبقي',type:'amount',computed:remainingRevenue,showZero:true,ic:'coins'},
       {key:'voucher',label:'رقم السند',type:'number',ic:'receipt'},{key:'notes',label:'الملاحظات',type:'text',ic:'pen'} ] },
   other: { title:'مصاريف أخرى', theme:'grn', sumKey:'amount', sumLabel:'إجمالي المصروفات', initial:30,
     sub:'مصاريف شهرية متنوعة', section:null, totalStyle:'box', signature:'other', cols:[
       {key:'type',label:'نوع المصروف',type:'text'},{key:'amount',label:'المبلغ',type:'amount'},
       {key:'recipient',label:'اسم المستلم',type:'text'},{key:'date',label:'تاريخ الدفع',type:'date'},
       {key:'voucher',label:'رقم السند',type:'number'},{key:'notes',label:'الملاحظات',type:'text'} ] },
+  income: { title:'الدخل', theme:'rev', sumKey:'amount', sumLabel:'إجمالي الدخل', initial:30,
+    titleTpl:'الدخل لشهر ( {month} ) لعام {year} م', subTpl:'جدول تنظيم وتحصيل الدخل الشهري', signature:'ledger', cols:[
+      {key:'amount',label:'المبلغ',type:'amount',ic:'money'},{key:'type',label:'نوع الدخل',type:'text',ic:'tag'},
+      {key:'date',label:'التاريخ',type:'date',ic:'cal'},{key:'notes',label:'ملاحظات',type:'text',ic:'pen'} ] },
+  expense: { title:'المصروفات', theme:'rev', sumKey:'amount', sumLabel:'إجمالي المصروفات', initial:30,
+    titleTpl:'المصروفات لشهر ( {month} ) لعام {year} م', subTpl:'جدول تنظيم وتوثيق المصروفات الشهرية', signature:'ledger', cols:[
+      {key:'amount',label:'المبلغ',type:'amount',ic:'money'},{key:'type',label:'نوع المصروف',type:'text',ic:'tag'},
+      {key:'date',label:'التاريخ',type:'date',ic:'cal'},{key:'notes',label:'ملاحظات',type:'text',ic:'pen'} ] },
   receipt: { title:'سند قبض', theme:'receipt', layout:'receipt', sumKey:'amount', sumLabel:'قيمة السند', initial:1 },
   letter: { title:'خطابات مجمع الهاشمي', theme:'letter', layout:'letter', sumKey:'amount', initial:0 },
 };
@@ -159,29 +165,14 @@ function renderList(invoices){
   }
   const cards = invoices.map(inv => {
     const cfg = TYPES[inv.type] || {};
-    // الخطابات مستند واحد بلا بنود ولا مجاميع — لا نعرض «عدد البنود» ولا «الإجمالي»
-    // الإيرادات: نعرض المجاميع الثلاثة (إيجارات / محصَّل / متبقي) بدل إجمالي واحد مضلِّل
-    const author = `<span style="flex-basis:100%;color:#7f8b84">أنشأها: ${escapeHtml(inv.created_by||'')}</span>`;
-    let stats;
-    if(inv.type === 'letter'){
-      stats = author;
-    } else if(inv.type === 'rev'){
-      stats = `<span style="flex-basis:100%">عدد البنود: <b>${inv.count}</b></span>
-          <span class="rev-sum" style="flex-basis:100%">إجمالي الإيجارات: <b>${fmtMoney(inv.rentSum||0)}</b></span>
-          <span class="rev-sum" style="flex-basis:100%">إجمالي المُحصَّل: <b>${fmtMoney(inv.paidSum||0)}</b></span>
-          <span class="rev-sum" style="flex-basis:100%">إجمالي المتبقي: <b style="color:#b7352b">${fmtMoney(inv.remSum||0)}</b></span>
-          ${author}`;
-    } else {
-      stats = `<span>عدد البنود: <b>${inv.count}</b></span><span>الإجمالي: <b>${fmtMoney(inv.total)}</b></span>
-          ${author}`;
-    }
     return `<div class="inv-card ${cfg.theme}" data-open="${inv.id}">
       <div class="stripe"></div>
       <div class="body">
         <div class="card-top"><img src="${LOGO_SRC}" alt="" class="card-logo"><span class="kind-badge">${escapeHtml(cfg.title||inv.type)}</span></div>
         <h3>${escapeHtml(cfg.title||inv.type)}</h3>
         <div class="month">${MONTHS[inv.month]} ${inv.year}</div>
-        <div class="stats">${stats}</div>
+        <div class="stats"><span>عدد البنود: <b>${inv.count}</b></span><span>الإجمالي: <b>${fmtMoney(inv.total)}</b></span>
+          <span style="flex-basis:100%;color:#7f8b84">أنشأها: ${escapeHtml(inv.created_by||'')}</span></div>
       </div>
       <div class="row-actions"><button class="open" data-open="${inv.id}">فتح الفاتورة</button>
         <button class="del" data-del="${inv.id}">حذف</button></div></div>`;
@@ -238,81 +229,39 @@ function renderInvoice(){
     h += renderSheetHeader(inv, cfg);
     h += renderTable(inv, cfg);
     h += renderTotal(cfg);
-    if(cfg.theme === 'rev') h += renderSignatureFooter('revenue');
-    if(cfg.signature === 'other') h += renderSignatureFooter('other');
+    const sigKind = cfg.signature || (cfg.theme === 'rev' ? 'revenue' : null);
+    if(sigKind) h += renderSignatureFooter(sigKind);
   }
   h += `</section></div>`;
 
   appMain().innerHTML = h;
   updateTotal();
-  applyPrintOrientation();   // اضبط اتجاه ورق الطباعة (A4) حسب نوع الفاتورة مسبقًا
   appMain().querySelectorAll('[data-meta="month"]').forEach(el => el.addEventListener('change', e => changeMeta('month', +e.target.value)));
   appMain().querySelectorAll('[data-meta="year"]').forEach(el => el.addEventListener('change', e => changeMeta('year', +e.target.value)));
 }
 function renderToolbar(inv){
   return `<div class="invoice-toolbar">
-    <button type="button" class="btn-ghost" data-action="back">→ رجوع للقائمة</button>
+    <button class="btn-ghost" data-action="back">→ رجوع للقائمة</button>
     <div class="invoice-meta">
       <label class="meta-pick">الشهر:
         <select data-meta="month">${MONTHS.map((m,i)=>`<option value="${i}" ${i===inv.month?'selected':''}>${m}</option>`).join('')}</select>
         <select data-meta="year">${yearOptions(inv.year)}</select>
       </label>
-      <button type="button" class="btn-primary btn-print" data-action="print">🖨️ طباعة / حفظ PDF</button>
-      <button type="button" class="btn-danger" data-action="delete-invoice">حذف الفاتورة</button>
+      <button class="btn-ghost" data-action="print">طباعة</button>
+      <button class="btn-danger" data-action="delete-invoice">حذف الفاتورة</button>
     </div></div>`;
-}
-
-/* ---------- الطباعة / حفظ PDF (يدعم الأيفون + يطبع تصميم الكمبيوتر على ورق A4) ---------- */
-function pdfFileName(){
-  const inv = current?.invoice; if(!inv) return 'فاتورة';
-  const cfg = TYPES[inv.type] || {};
-  const base = cfg.title || inv.type;
-  return (inv.month != null && inv.year)
-    ? `${base} - ${MONTHS[inv.month]} ${inv.year}`
-    : base;
-}
-function applyPrintOrientation(){
-  const cfg = TYPES[current?.invoice?.type] || {};
-  const portrait = cfg.layout === 'receipt' || cfg.layout === 'letter';
-  const orient = portrait ? 'portrait' : 'landscape';
-  // الهامش هنا يجب أن يطابق حسابات العرض بالمليمتر في styles.css
-  // أفقي: 297 − 2×10 = 277mm ، عمودي: 210 − 2×12 = 186mm
-  const margin = portrait ? '12mm' : '10mm';
-  let st = document.getElementById('printPageStyle');
-  if(!st){ st = document.createElement('style'); st.id = 'printPageStyle'; document.head.appendChild(st); }
-  st.textContent = `@page { size: A4 ${orient}; margin: ${margin}; }`;
-  document.documentElement.classList.toggle('print-portrait', portrait);
-  document.documentElement.classList.toggle('print-landscape', !portrait);
-}
-function printInvoice(){
-  if(getView() !== 'invoice') return;
-  // ثبّت أي خلية قيد التعديل قبل الطباعة (تجنّب فقدان آخر تعديل أو ظهور مؤشّر الكتابة)
-  const ae = document.activeElement;
-  if(ae && typeof ae.blur === 'function' && (ae.isContentEditable || ae.tagName === 'INPUT')) ae.blur();
-  applyPrintOrientation();
-  // اسم ملف الـ PDF المقترح = عنوان الفاتورة الحالية. نضبطه قبل الطباعة مباشرة فقط.
-  // لا نستخدم مؤقّتًا للاستعادة: على الأيفون لا يُطلق afterprint وقد يستغرق تدفّق
-  // «حفظ في الملفات» أكثر من ثوانٍ، فكان المؤقّت يعيد العنوان لقيمة قديمة (مثل اسم
-  // فاتورة سابقة) قبل أن يلتقطه iОS — فيخرج الملف باسم خاطئ. نستعيد فقط عند afterprint
-  // (سطح المكتب) وإلى عنوان ثابت، لا إلى قيمة ملتقطة قد تكون قديمة.
-  document.title = pdfFileName();
-  window.addEventListener('afterprint', () => { document.title = APP_TITLE; }, { once: true });
-  try {
-    if(typeof window.print === 'function') window.print();
-    else throw new Error('no-print');
-  } catch {
-    document.title = APP_TITLE;
-    toast('لإتمام الطباعة: افتح الصفحة في Safari ثم زر المشاركة ⬆️ واختر «طباعة»');
-  }
 }
 function renderSheetHeader(inv, cfg){
   const month = MONTHS[inv.month];
-  const title = cfg.theme === 'exp'
-    ? `مصاريف بيوت الوالد شهر ( ${month} ) لعام ${inv.year}`
-    : cfg.theme === 'rev'
-      ? `إيرادات شهر ( ${month} ) لعام ${inv.year} م`
-      : 'مصاريف أخرى';
-  const sub = cfg.theme === 'grn' ? `مصاريف شهر ( ${month} ) لعام ${inv.year}` : cfg.sub;
+  const fill = s => String(s).replace(/\{month\}/g, month).replace(/\{year\}/g, inv.year);
+  const title = cfg.titleTpl
+    ? fill(cfg.titleTpl)
+    : cfg.theme === 'exp'
+      ? `مصاريف بيوت الوالد شهر ( ${month} ) لعام ${inv.year}`
+      : cfg.theme === 'rev'
+        ? `إيرادات شهر ( ${month} ) لعام ${inv.year} م`
+        : 'مصاريف أخرى';
+  const sub = cfg.subTpl ? fill(cfg.subTpl) : cfg.theme === 'grn' ? `مصاريف شهر ( ${month} ) لعام ${inv.year}` : cfg.sub;
   return `<div class="sheet-accent ${cfg.theme}"></div>
     <header class="sheet-letterhead ${cfg.theme}">
       <div class="sheet-brand"><img src="${LOGO_SRC}" alt="الهاشمي" class="sheet-logo-img"></div>
@@ -332,18 +281,11 @@ function renderTable(inv, cfg){
     const r = rowAtPos(i), data = r?.data || {};
     h += `<tr data-pos="${i}"${r?` data-rowid="${r.id}"`:''}><td class="meem">${i+1}${r?`<button class="row-del" data-delrow="${r.id}" title="حذف البند">×</button>`:''}</td>`;
     cfg.cols.forEach(c=>{
-      if(c.autoFill){
-        // عمود يُحسب تلقائيًا (المتبقي) لكنه قابل للتعديل اليدوي.
-        // إن وُجدت قيمة محفوظة في data ⇒ تعديل يدوي يُعرض كما هو؛ وإلا تُعرض القيمة التلقائية.
-        const manual = data[c.key] != null && String(data[c.key]).trim() !== '';
-        const val = manual ? data[c.key] : c.autoFill(data);
-        const disp = displayValue(c.type, val, c.showZero);
-        h += `<td class="edit autofill" contenteditable="true" data-key="${c.key}" data-type="${c.type}" data-label="${c.label}" data-autofill="1"${manual?' data-manual="1"':''}>${escapeHtml(disp)}</td>`;
-      } else if(c.computed){
-        const disp = displayValue(c.type, c.computed(data), c.showZero);
+      const val = c.computed ? c.computed(data) : (data[c.key] || '');
+      const disp = displayValue(c.type, val, c.showZero);
+      if(c.computed){
         h += `<td class="computed" data-computed="${c.key}" data-label="${c.label}">${escapeHtml(disp)}</td>`;
       } else {
-        const disp = displayValue(c.type, data[c.key] || '', c.showZero);
         h += `<td class="edit" contenteditable="true" data-key="${c.key}" data-type="${c.type}" data-label="${c.label}">${escapeHtml(disp)}</td>`;
       }
     });
@@ -354,16 +296,6 @@ function renderTable(inv, cfg){
 }
 function renderTotal(cfg){
   const icon = `<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>`;
-  if(cfg.multiSum){
-    return `<div class="summary-area ${cfg.theme}">
-      <div class="summary-multi ${cfg.theme}">
-        ${cfg.multiSum.map(s=>`<div class="summary-cell ${s.key==='remSum'?'rem':''}">
-          <span class="summary-mlabel">${s.label}</span>
-          <span class="summary-mvalue" id="sum_${s.key}">0 ريال</span>
-        </div>`).join('')}
-      </div>
-    </div>`;
-  }
   return `<div class="summary-area ${cfg.theme}">
     <div class="summary-box ${cfg.theme}">
       <span class="summary-label"><span class="summary-ic">${icon}</span>${cfg.sumLabel}</span>
@@ -376,7 +308,9 @@ function renderSignatureFooter(kind){
     ? [['receiver','المستلم'],['accountant','المحاسب'],['recipient','المسلّم']]
     : kind === 'revenue'
       ? [['accountant','توقيع المحاسب'],['management','اعتماد الإدارة']]
-      : [['accountant','توقيع المحاسب'],['management','توقيع الإدارة']];
+      : kind === 'ledger'
+        ? [['accountant','توقيع المحاسب'],['management','اعتماد الإدارة'],['official','توقيع المسؤول']]
+        : [['accountant','توقيع المحاسب'],['management','توقيع الإدارة']];
   return `<div class="signature-slots ${kind}">
     ${slots.map(([slot,label]) => renderSignatureSlot(slot, label)).join('')}
   </div>`;
@@ -457,19 +391,6 @@ function renderLetter(inv){
 function updateTotal(){
   if(!current) return;
   const cfg = TYPES[current.invoice.type];
-  if(cfg.multiSum){
-    let rentSum=0, paidSum=0, remSum=0;
-    for(const r of current.rows){
-      const d = r.data || {};
-      const rent = toNum(d.rent), paid = toNum(d.paid);
-      // المتبقي الفعلي: القيمة اليدوية إن وُجدت، وإلا الحساب التلقائي (الإيجار − المدفوع)
-      const rem = (d.remaining != null && String(d.remaining).trim() !== '') ? toNum(d.remaining) : Math.max(rent - paid, 0);
-      rentSum += rent; paidSum += paid; remSum += rem;
-    }
-    const map = { rentSum, paidSum, remSum };
-    cfg.multiSum.forEach(s => { const el = $(`#sum_${s.key}`); if(el) el.textContent = fmtMoney(map[s.key]); });
-    return;
-  }
   const total = current.rows.reduce((a,r)=> a + toNum(r.data?.[cfg.sumKey]), 0);
   const el = $('#invTotal'); if(el) el.textContent = fmtMoney(total);
 }
@@ -492,7 +413,7 @@ function onMainClick(e){
   if(sigBtn){ e.stopPropagation(); openSignature(sigBtn.dataset.signatureSlot, sigBtn.dataset.signatureLabel); return; }
   const action = e.target.closest('[data-action]')?.getAttribute('data-action');
   if(action==='back') return showList();
-  if(action==='print') return printInvoice();
+  if(action==='print') return window.print();
   if(action==='delete-invoice') return deleteInvoice(current.invoice.id);
   if(action==='add-row') return addRow();
   const openId = e.target.closest('[data-open]')?.getAttribute('data-open');
@@ -527,46 +448,9 @@ function rowDataFromTr(tr){
   tr.querySelectorAll('td.edit').forEach(c=>{
     const key=c.dataset.key, type=c.dataset.type;
     const v = cleanValue(type, c.textContent);
-    if(c.dataset.autofill){
-      // لا نحفظ القيمة التلقائية؛ نحفظ فقط عند التعديل اليدوي (data-manual)
-      if(c.dataset.manual && v) data[key]=v;
-      return;
-    }
     if(v) data[key]=v;
   });
   return data;
-}
-
-/* ---------- أعمدة الحساب التلقائي القابلة للتعديل (مثل «المتبقي») ---------- */
-const autoFillCol = cfg => cfg?.cols?.find(c => c.autoFill);
-// بيانات الصف من الخلايا العادية فقط (لحساب القيمة التلقائية بمعزل عن خلية المتبقي)
-function rowDataBase(tr){
-  const data = {};
-  tr.querySelectorAll('td.edit').forEach(c=>{
-    if(c.dataset.autofill) return;
-    const v = cleanValue(c.dataset.type, c.textContent);
-    if(v) data[c.dataset.key]=v;
-  });
-  return data;
-}
-// عند تعديل خلية المتبقي نفسها: نقرّر يدوي أم تلقائي
-function syncAutoFillEdited(td, tr, col){
-  const auto = String(col.autoFill(rowDataBase(tr)) ?? '');
-  const typed = cleanValue(td.dataset.type, td.textContent);
-  if(!typed || typed === auto){
-    delete td.dataset.manual;                                   // عاد تلقائيًا
-    td.textContent = displayValue(td.dataset.type, auto, col.showZero);
-  } else {
-    td.dataset.manual = '1';                                    // تعديل يدوي يبقى
-    td.textContent = displayValue(td.dataset.type, typed, col.showZero);
-  }
-}
-// عند تعديل خلية أخرى (الإيجار/المدفوع): حدّث المتبقي تلقائيًا ما لم يكن يدويًا
-function refreshAutoFillCells(tr, cfg){
-  const col = autoFillCol(cfg); if(!col) return;
-  const cell = tr.querySelector(`td.edit[data-autofill][data-key="${col.key}"]`);
-  if(!cell || cell.dataset.manual) return;
-  cell.textContent = displayValue(col.type, col.autoFill(rowDataBase(tr)), col.showZero);
 }
 function receiptDataFromDom(){
   const data = {};
@@ -609,19 +493,11 @@ async function onCellBlur(e){
 
   const tr = td.closest('tr'); const pos = +tr.dataset.pos;
   const cfg = TYPES[current.invoice.type];
-  const col = autoFillCol(cfg);
-
-  // طبّع الخلية المعدّلة + زامن خلية الحساب التلقائي (المتبقي)
-  if(col && td.dataset.autofill){
-    syncAutoFillEdited(td, tr, col);            // الخلية المعدّلة هي «المتبقي»
-  } else {
-    td.textContent = displayValue(td.dataset.type, cleanValue(td.dataset.type, td.textContent));
-    if(col) refreshAutoFillCells(tr, cfg);      // عُدّلت خلية أخرى ⇒ حدّث «المتبقي» تلقائيًا
-  }
-
   const data = rowDataFromTr(tr);
   const hasDate = cfg.cols.some(c=>c.key==='date');
   if(hasDate && !isEmptyData(data) && !data.date) data.date = todayISO();
+
+  td.textContent = displayValue(td.dataset.type, cleanValue(td.dataset.type, td.textContent));
   if(data.date){ const dc = tr.querySelector('td.edit[data-key="date"]'); if(dc && !dc.textContent.trim()) dc.textContent = fmtDate(data.date); }
 
   try { await upsertRow(pos, data, tr); }

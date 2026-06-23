@@ -4,12 +4,7 @@ import cookieSession from 'cookie-session';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CONFIG } from './config.js';
-
-import {
-  initDb,
-  tenantStore
-} from './db.js';
-
+import { initDb } from './db.js'; // استيراد دالة تهيئة قاعدة البيانات السحابية
 import { mountAuth, requireAuthed } from './auth.js';
 import { mountInvoices } from './routes/invoices.js';
 import { mountActivity } from './routes/activity.js';
@@ -20,87 +15,42 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
 const app = express();
-
 app.use(express.json({ limit: '1mb' }));
-
 app.use(cookieSession({
   name: 'station_sess',
   keys: [CONFIG.SESSION_SECRET],
   httpOnly: true,
   sameSite: 'lax',
-  maxAge: 30 * 24 * 60 * 60 * 1000,
+  maxAge: 30 * 24 * 60 * 60 * 1000, // 30 يومًا
 }));
 
-// =====================================================
-// Multi-Tenant Middleware
-// =====================================================
-// البوابة Python تحقن X-Tenant-Schema
-// نخزنها في AsyncLocalStorage حتى تصل إلى db.js
-// =====================================================
-
-app.use((req, res, next) => {
-  const schemaHeader = req.headers['x-tenant-schema'];
-
-  const schema =
-    typeof schemaHeader === 'string'
-      ? schemaHeader
-      : 'public';
-
-  tenantStore.run({ schema }, () => {
-    next();
-  });
-});
-
 // ===== طبقات الـ API =====
-
 mountAuth(app);
 mountInvoices(app);
 mountActivity(app);
 mountAdmin(app);
-
-app.get(
-  '/api/stream',
-  requireAuthed,
-  sseHandler
-);
+app.get('/api/stream', requireAuthed, sseHandler);   // المزامنة اللحظية
 
 // ===== الواجهة الثابتة =====
-
 app.use(express.static(PUBLIC_DIR));
-
 // أي مسار GET ليس API → نُرجع الواجهة (SPA)
-
 app.use((req, res, next) => {
-  if (
-    req.method === 'GET' &&
-    !req.path.startsWith('/api/')
-  ) {
-    return res.sendFile(
-      path.join(PUBLIC_DIR, 'index.html')
-    );
+  if (req.method === 'GET' && !req.path.startsWith('/api/')) {
+    return res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
   }
-
   next();
 });
 
 // ===== تشغيل قاعدة البيانات أولاً، ثم السيرفر =====
-
 async function startServer() {
   try {
-    await initDb();
-
-    app.listen(CONFIG.PORT, '127.0.0.1', () => {
-      console.log(
-        `✅ Bills listening on 127.0.0.1:${CONFIG.PORT}`
-      );
-
-      maybeDailySnapshot();
+    await initDb(); // انتظار الاتصال بقاعدة بيانات Neon السحابية
+    app.listen(CONFIG.PORT, () => {
+      console.log(`✅ نظام المحطة يعمل بامتياز على المنفذ: ${CONFIG.PORT}`);
+      maybeDailySnapshot();   // لقطة يومية تلقائية إن لزم
     });
   } catch (error) {
-    console.error(
-      '❌ فشل تشغيل السيرفر:',
-      error.message
-    );
+    console.error('❌ فشل تشغيل السيرفر أو الاتصال بقاعدة البيانات:', error.message);
   }
 }
 

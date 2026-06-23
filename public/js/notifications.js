@@ -5,8 +5,13 @@ const listeners = new Set();
 export function getState() { return state; }
 export function onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); }
 
-// العدّاد يُدار من طبقة العرض (bell.js) ليعكس عدد «الملخّصات» غير المقروءة لا العدد الخام.
-function emit() { listeners.forEach(fn => fn(state)); }
+function updateBadge() {
+  const c = document.getElementById('bellCount');
+  if (!c) return;
+  c.textContent = state.unread > 99 ? '99+' : String(state.unread);
+  c.hidden = state.unread <= 0;
+}
+function emit() { updateBadge(); listeners.forEach(fn => fn(state)); }
 
 export function setInitial(items, unread) { state.items = items || []; state.unread = unread || 0; emit(); }
 export function addIncoming(act) { state.items.unshift({ ...act, read: false }); state.unread++; emit(); }

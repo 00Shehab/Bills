@@ -4,7 +4,7 @@ import { db, now } from '../db.js';
 import { requireUser } from '../auth.js';
 import { trackRowChange, trackInvoiceChange } from '../changeTracker.js';
 
-const VALID_TYPES = ['lower', 'upper', 'rev', 'other', 'receipt', 'letter'];
+const VALID_TYPES = ['lower', 'upper', 'rev', 'other', 'receipt', 'letter', 'income', 'expense'];
 const SUMKEY = {
   lower: 'amount',
   upper: 'amount',
@@ -12,6 +12,8 @@ const SUMKEY = {
   other: 'amount',
   receipt: 'amount',
   letter: 'amount',
+  income: 'amount',
+  expense: 'amount',
 };
 
 const qList = db.prepare(`
@@ -146,6 +148,8 @@ function invoiceLabel(inv) {
     other: 'معاملات أخرى',
     receipt: 'سند قبض',
     letter: 'خطابات مجمع الهاشمي',
+    income: 'الدخل',
+    expense: 'المصروفات',
   };
   const title = titleMap[inv.type] || inv.type || 'فاتورة';
   const month = months[Math.max(0, Number(inv.month || 1) - 1)] || String(inv.month || '');
@@ -162,14 +166,6 @@ async function loadInvoiceWithRows(id) {
   };
 }
 
-// =====================================================
-// Helpers — استخراج المستخدم من ترويسة البوابة
-// =====================================================
-function userFromReq(req) {
-  const u = req.headers['x-user'];
-  return typeof u === 'string' && u.trim() ? u.trim() : 'user';
-}
-
 export function mountInvoices(app) {
   // قائمة الفواتير مع العدد والإجمالي
   app.get('/api/invoices', requireUser, ah(async (req, res) => {
@@ -184,7 +180,7 @@ export function mountInvoices(app) {
       const total = parsedRows.reduce((acc, d) => acc + num(d[cfgKey]), 0);
       const count = parsedRows.filter(d => !isEmpty(d)).length;
 
-      const item = {
+      list.push({
         id: inv.id,
         type: inv.type,
         month: Number(inv.month || 0),
@@ -193,25 +189,7 @@ export function mountInvoices(app) {
         created_at: inv.created_at,
         count,
         total,
-      };
-
-      // الإيرادات: مجاميع ثلاثة على البطاقة (إيجارات / محصَّل / متبقي)
-      // المتبقي الفعلي = القيمة اليدوية إن وُجدت، وإلا (الإيجار − المدفوع) بحدّ أدنى صفر — مطابق لحساب الواجهة.
-      if (inv.type === 'rev') {
-        let rentSum = 0, paidSum = 0, remSum = 0;
-        for (const d of parsedRows) {
-          const rent = num(d.rent), paid = num(d.paid);
-          const rem = (d.remaining != null && String(d.remaining).trim() !== '')
-            ? num(d.remaining)
-            : Math.max(rent - paid, 0);
-          rentSum += rent; paidSum += paid; remSum += rem;
-        }
-        item.rentSum = rentSum;
-        item.paidSum = paidSum;
-        item.remSum = remSum;
-      }
-
-      list.push(item);
+      });
     }
 
     res.json({ invoices: list });
@@ -226,7 +204,7 @@ export function mountInvoices(app) {
 
     const id = 'inv_' + randomUUID();
     const t = now();
-    const u = userFromReq(req);
+    const u = req.session.user || req.session.activeUser || 'user';
     const month = Number(req.body?.month);
     const year = Number(req.body?.year);
     const meta = JSON.stringify(req.body?.meta ?? {});
@@ -271,7 +249,7 @@ export function mountInvoices(app) {
     const year = req.body?.year != null ? Number(req.body.year) : Number(inv.year);
     const meta = req.body?.meta != null ? JSON.stringify(req.body.meta || {}) : (inv.meta || '{}');
     const t = now();
-    const u = userFromReq(req);
+    const u = req.session.user || req.session.activeUser || 'user';
 
     await updInvoice.run(month, year, meta, u, t, inv.id);
 
@@ -296,7 +274,7 @@ export function mountInvoices(app) {
     }
 
     const t = now();
-    const u = userFromReq(req);
+    const u = req.session.user || req.session.activeUser || 'user';
 
     await delInvoice.run(u, t, inv.id);
     await delInvoiceRows.run(u, t, inv.id);
@@ -319,7 +297,7 @@ export function mountInvoices(app) {
 
     const id = 'row_' + randomUUID();
     const t = now();
-    const u = userFromReq(req);
+    const u = req.session.user || req.session.activeUser || 'user';
     const data = req.body?.data || {};
     const position = Number(req.body?.position) || 0;
 
@@ -367,7 +345,7 @@ export function mountInvoices(app) {
 
     const data = req.body?.data || {};
     const t = now();
-    const u = userFromReq(req);
+    const u = req.session.user || req.session.activeUser || 'user';
 
     await updRowData.run(JSON.stringify(data), u, t, r.id);
 
@@ -393,7 +371,7 @@ export function mountInvoices(app) {
     }
 
     const t = now();
-    const u = userFromReq(req);
+    const u = req.session.user || req.session.activeUser || 'user';
 
     await delRow.run(u, t, r.id);
 

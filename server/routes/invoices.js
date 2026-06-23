@@ -180,7 +180,7 @@ export function mountInvoices(app) {
       const total = parsedRows.reduce((acc, d) => acc + num(d[cfgKey]), 0);
       const count = parsedRows.filter(d => !isEmpty(d)).length;
 
-      list.push({
+      const entry = {
         id: inv.id,
         type: inv.type,
         month: Number(inv.month || 0),
@@ -189,7 +189,23 @@ export function mountInvoices(app) {
         created_at: inv.created_at,
         count,
         total,
-      });
+      };
+
+      // تفصيل فاتورة الإيرادات لعرضه في البطاقة من الخارج: الإيجارات + المُحصّل + المتبقي
+      if (inv.type === 'rev') {
+        let rent = 0, collected = 0, remaining = 0;
+        for (const d of parsedRows) {
+          rent += num(d.rent);
+          collected += num(d.paid);
+          const manual = String(d.remaining ?? '').trim();
+          remaining += manual ? num(manual) : Math.max(num(d.rent) - num(d.paid), 0);
+        }
+        entry.rentTotal = rent;
+        entry.collectedTotal = collected;
+        entry.remainingTotal = remaining;
+      }
+
+      list.push(entry);
     }
 
     res.json({ invoices: list });

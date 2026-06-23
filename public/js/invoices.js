@@ -36,6 +36,11 @@ export const TYPES = {
       {key:'recipient',label:'المستلم',type:'text'},{key:'date',label:'تاريخ الدفع',type:'date'},
       {key:'notes',label:'الملاحظات',type:'text'} ] },
   rev: { title:'فاتورة الإيرادات', theme:'rev', sumKey:'paid', sumLabel:'إجمالي الإيرادات', initial:30,
+    multiSum:[
+      { key:'rent',      label:'إجمالي الإيجارات' },
+      { key:'paid',      label:'إجمالي المُحصّل' },
+      { key:'remaining', label:'إجمالي المتبقي', accent:'rem' },
+    ],
     sub:'جدول تنظيم وتحصيل الإيرادات الشهرية للمحلات التجارية', section:null, cols:[
       {key:'shop',label:'اسم المحل',type:'text',ic:'shop'},{key:'rent',label:'قيمة الإيجار',type:'amount',ic:'tag'},
       {key:'due',label:'استحقاق الدفع',type:'date',ic:'cal'},{key:'paid',label:'المدفوع',type:'amount',ic:'money'},
@@ -165,14 +170,21 @@ function renderList(invoices){
   }
   const cards = invoices.map(inv => {
     const cfg = TYPES[inv.type] || {};
+    const isRev = !!cfg.multiSum && inv.type === 'rev';
+    const stats = isRev
+      ? `<span>عدد البنود: <b>${inv.count}</b></span>
+         <span>إجمالي الإيجارات: <b>${fmtMoney(inv.rentTotal||0)}</b></span>
+         <span>إجمالي المُحصّل: <b>${fmtMoney(inv.collectedTotal||0)}</b></span>
+         <span class="rem">إجمالي المتبقي: <b>${fmtMoney(inv.remainingTotal||0)}</b></span>`
+      : `<span>عدد البنود: <b>${inv.count}</b></span><span>الإجمالي: <b>${fmtMoney(inv.total)}</b></span>`;
     return `<div class="inv-card ${cfg.theme}" data-open="${inv.id}">
       <div class="stripe"></div>
       <div class="body">
         <div class="card-top"><img src="${LOGO_SRC}" alt="" class="card-logo"><span class="kind-badge">${escapeHtml(cfg.title||inv.type)}</span></div>
         <h3>${escapeHtml(cfg.title||inv.type)}</h3>
         <div class="month">${MONTHS[inv.month]} ${inv.year}</div>
-        <div class="stats"><span>عدد البنود: <b>${inv.count}</b></span><span>الإجمالي: <b>${fmtMoney(inv.total)}</b></span>
-          <span style="flex-basis:100%;color:#7f8b84">أنشأها: ${escapeHtml(inv.created_by||'')}</span></div>
+        <div class="stats${isRev ? ' stats-rev' : ''}">${stats}
+          <span class="who">أنشأها: ${escapeHtml(inv.created_by||'')}</span></div>
       </div>
       <div class="row-actions"><button class="open" data-open="${inv.id}">فتح الفاتورة</button>
         <button class="del" data-del="${inv.id}">حذف</button></div></div>`;
@@ -295,11 +307,22 @@ function renderTable(inv, cfg){
   return h;
 }
 function renderTotal(cfg){
+  if(cfg.multiSum) return renderMultiSum(cfg);
   const icon = `<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>`;
   return `<div class="summary-area ${cfg.theme}">
     <div class="summary-box ${cfg.theme}">
       <span class="summary-label"><span class="summary-ic">${icon}</span>${cfg.sumLabel}</span>
       <span class="summary-value" id="invTotal"></span>
+    </div>
+  </div>`;
+}
+function renderMultiSum(cfg){
+  return `<div class="summary-area ${cfg.theme} is-multi">
+    <div class="summary-multi ${cfg.theme}">
+      ${cfg.multiSum.map(s => `<div class="summary-cell${s.accent === 'rem' ? ' rem' : ''}">
+        <span class="summary-label">${s.label}</span>
+        <span class="summary-value" data-sum="${s.key}"></span>
+      </div>`).join('')}
     </div>
   </div>`;
 }
@@ -388,9 +411,29 @@ function renderLetter(inv){
   </div>`;
 }
 
+// مجاميع فاتورة الإيرادات: إجمالي الإيجارات + المُحصّل + المتبقي (المتبقي = مجموع المتبقي لكل بند)
+function sumRevenue(rows){
+  let rent = 0, paid = 0, remaining = 0;
+  for(const r of rows){
+    const d = r.data || {};
+    rent += toNum(d.rent);
+    paid += toNum(d.paid);
+    const manual = String(d.remaining ?? '').trim();
+    remaining += manual ? toNum(manual) : Math.max(toNum(d.rent) - toNum(d.paid), 0);
+  }
+  return { rent, paid, remaining };
+}
 function updateTotal(){
   if(!current) return;
   const cfg = TYPES[current.invoice.type];
+  if(cfg.multiSum){
+    const totals = sumRevenue(current.rows);
+    cfg.multiSum.forEach(s => {
+      const el = appMain().querySelector(`[data-sum="${s.key}"]`);
+      if(el) el.textContent = fmtMoney(totals[s.key]);
+    });
+    return;
+  }
   const total = current.rows.reduce((a,r)=> a + toNum(r.data?.[cfg.sumKey]), 0);
   const el = $('#invTotal'); if(el) el.textContent = fmtMoney(total);
 }

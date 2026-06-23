@@ -11,7 +11,7 @@ const MONTHS = [
 const TYPE_TITLES = {
   lower: 'فاتورة البيت الأسفل', upper: 'فاتورة البيت الأعلى', rev: 'فاتورة الإيرادات',
   other: 'معاملات أخرى', receipt: 'سند قبض', letter: 'سند الهاشمي',
-  income: 'الدخل', expense: 'المصروفات',
+  income: 'الدخل', expense: 'المصروفات', incexp: 'الدخل والمصروفات',
 };
 
 let dailyTimer = null;

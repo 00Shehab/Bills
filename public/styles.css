@@ -844,6 +844,95 @@ select {
 .inv-card .stats.stats-rev > span { flex-basis: 100%; }
 .inv-card .stats .rem b { color: var(--danger); }
 .inv-card .stats .who { flex-basis: 100%; color: #7f8b84; }
+
+/* ===== فاتورة «الدخل والمصروفات» (جدولان + إجمالي مجمّع) ===== */
+/* عنوان القسم: تبويب أخضر موسّط فوق كل جدول (الدخل / المصروفات) */
+.section-tab {
+  width: max-content;
+  margin: 6px auto 14px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--brand-green), #0a3f28);
+  padding: 9px 30px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 17px;
+  box-shadow: inset 0 -2px 0 rgba(213,180,93,.75), 0 6px 16px rgba(7,42,26,.12);
+}
+.section-tab .tab-ic { display: inline-flex; opacity: .92; }
+.section-tab .tab-ic svg { width: 18px; height: 18px; }
+
+/* التذييل المجمّع: صندوق التواقيع (يمين) + صندوق الإجماليات (يسار) كما في الصورة */
+.ledger-foot {
+  display: flex;
+  gap: 18px;
+  align-items: stretch;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 2px solid rgba(187,140,47,.52);
+}
+.ledger-signs {
+  flex: 1.25;
+  display: flex;
+  align-items: center;
+  border: 1.5px solid rgba(0,79,46,.28);
+  border-radius: 12px;
+  padding: 16px 18px;
+  background: #fff;
+}
+.ledger-signs .signature-slots { width: 100%; margin: 0; padding: 0; gap: 16px; justify-content: space-between; }
+.ledger-totals {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  border: 1.5px solid var(--brand-gold);
+  border-radius: 12px;
+  padding: 16px 18px;
+  background: #fffdf8;
+  box-shadow: 0 10px 22px rgba(7,42,26,.06);
+}
+.lt-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--brand-green);
+}
+.lt-ic {
+  width: 30px; height: 30px; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-gold-2), var(--brand-gold));
+  color: #fff;
+}
+.lt-ic svg { width: 16px; height: 16px; }
+.lt-label { flex: 0 0 auto; }
+.lt-colon { margin: 0 -3px; opacity: .8; }
+.lt-value {
+  flex: 1;
+  text-align: left;
+  min-width: 70px;
+  padding-bottom: 3px;
+  border-bottom: 2px dotted rgba(0,79,46,.32);
+  color: var(--brand-green);
+}
+.lt-row.rem .lt-label,
+.lt-row.rem .lt-value { color: var(--danger); }
+.lt-row.rem .lt-value { border-bottom-color: rgba(192,57,43,.4); }
+
+/* الجوال: كدّس الصندوقين فوق بعض (الشاشة فقط — الطباعة تبقى جنبًا لجنب على A4) */
+@media screen and (max-width: 820px) {
+  .ledger-foot { flex-direction: column; gap: 14px; }
+  .section-tab { font-size: 16px; padding: 8px 24px; }
+}
+@media print {
+  .ledger-foot { break-inside: avoid; }
+}
 .signature-slots {
   display:flex;
   justify-content:flex-end;

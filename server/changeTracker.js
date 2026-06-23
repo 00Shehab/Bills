@@ -5,7 +5,7 @@ import { db, now } from './db.js';
 import { broadcast } from './sse.js';
 import { CONFIG } from './config.js';
 
-const TYPE_TITLES = { lower:'فاتورة البيت الأسفل', upper:'فاتورة البيت الأعلى', rev:'فاتورة الإيرادات', other:'معاملات أخرى', receipt:'سند قبض', letter:'سند الهاشمي', income:'الدخل', expense:'المصروفات' };
+const TYPE_TITLES = { lower:'فاتورة البيت الأسفل', upper:'فاتورة البيت الأعلى', rev:'فاتورة الإيرادات', other:'معاملات أخرى', receipt:'سند قبض', letter:'سند الهاشمي', income:'الدخل', expense:'المصروفات', incexp:'الدخل والمصروفات' };
 const MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 const invLabel = inv => `${TYPE_TITLES[inv.type] || inv.type} - ${MONTHS[inv.month]} ${inv.year}`;
 

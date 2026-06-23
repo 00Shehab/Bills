@@ -4,7 +4,7 @@ import { db, now } from '../db.js';
 import { requireUser } from '../auth.js';
 import { trackRowChange, trackInvoiceChange } from '../changeTracker.js';
 
-const VALID_TYPES = ['lower', 'upper', 'rev', 'other', 'receipt', 'letter', 'income', 'expense'];
+const VALID_TYPES = ['lower', 'upper', 'rev', 'other', 'receipt', 'letter', 'income', 'expense', 'incexp'];
 const SUMKEY = {
   lower: 'amount',
   upper: 'amount',
@@ -14,7 +14,11 @@ const SUMKEY = {
   letter: 'amount',
   income: 'amount',
   expense: 'amount',
+  incexp: 'amount',
 };
+
+// إزاحة المواضع للفواتير متعددة الجداول (الدخل=0.. / المصروفات=1000..) — يجب أن تطابق الواجهة
+const SECTION_BLOCK = 1000;
 
 const qList = db.prepare(`
   SELECT *
@@ -150,6 +154,7 @@ function invoiceLabel(inv) {
     letter: 'خطابات مجمع الهاشمي',
     income: 'الدخل',
     expense: 'المصروفات',
+    incexp: 'الدخل والمصروفات',
   };
   const title = titleMap[inv.type] || inv.type || 'فاتورة';
   const month = months[Math.max(0, Number(inv.month || 1) - 1)] || String(inv.month || '');
@@ -203,6 +208,18 @@ export function mountInvoices(app) {
         entry.rentTotal = rent;
         entry.collectedTotal = collected;
         entry.remainingTotal = remaining;
+      }
+
+      // تفصيل «الدخل والمصروفات»: الدخل (مواضع 0..) − المصروفات (مواضع 1000..)
+      if (inv.type === 'incexp') {
+        let income = 0, expense = 0;
+        for (const r of rows) {
+          const amt = num(parseData(r.data).amount);
+          if (Number(r.position || 0) >= SECTION_BLOCK) expense += amt; else income += amt;
+        }
+        entry.incomeTotal = income;
+        entry.expenseTotal = expense;
+        entry.remainingTotal = income - expense;
       }
 
       list.push(entry);

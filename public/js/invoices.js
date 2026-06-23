@@ -24,6 +24,9 @@ const remainingRevenue = d => {
   return String(Math.max(toNum(d.rent) - toNum(d.paid), 0));
 };
 
+// إزاحة مواضع كل قسم في الفواتير متعددة الجداول (الدخل=0..، المصروفات=1000..) — يجب أن تطابق الخادم
+const SECTION_BLOCK = 1000;
+
 export const TYPES = {
   lower: { title:'بيانات مصروفات البيت الأسفل', theme:'exp', sumKey:'amount', sumLabel:'إجمالي مصروفات البيت', initial:30,
     sub:'جدول تنظيم وتوثيق المصروفات الشهرية للأسرة', section:'البيت الأسفل', sectionNo:'1', cols:[
@@ -59,6 +62,22 @@ export const TYPES = {
     titleTpl:'المصروفات لشهر ( {month} ) لعام {year} م', subTpl:'جدول تنظيم وتوثيق المصروفات الشهرية', signature:'ledger', cols:[
       {key:'amount',label:'المبلغ',type:'amount',ic:'money'},{key:'type',label:'نوع المصروف',type:'text',ic:'tag'},
       {key:'date',label:'التاريخ',type:'date',ic:'cal'},{key:'notes',label:'ملاحظات',type:'text',ic:'pen'} ] },
+  incexp: { title:'الدخل والمصروفات', theme:'rev', initial:10,
+    titleTpl:'إيرادات شهر ( {month} ) لعام {year} م',
+    subTpl:'جدول تنظيم وتحصيل الإيرادات الشهرية للمحلات التجارية', signature:'ledger',
+    sections:[
+      { key:'inc', offset:0, ribbon:'الدخل', ic:'coins', sumKey:'amount', cols:[
+        {key:'amount',label:'المبلغ',type:'amount',ic:'money'},{key:'type',label:'نوع الدخل',type:'text',ic:'tag'},
+        {key:'date',label:'التاريخ',type:'date',ic:'cal'},{key:'notes',label:'ملاحظات',type:'text',ic:'pen'} ] },
+      { key:'exp', offset:1000, ribbon:'المصروفات', ic:'receipt', sumKey:'amount', cols:[
+        {key:'amount',label:'المبلغ',type:'amount',ic:'money'},{key:'type',label:'نوع المصروف',type:'text',ic:'tag'},
+        {key:'date',label:'التاريخ',type:'date',ic:'cal'},{key:'notes',label:'ملاحظات',type:'text',ic:'pen'} ] },
+    ],
+    combinedSum:[
+      { key:'inc', label:'إجمالي الدخل', ic:'coins' },
+      { key:'exp', label:'إجمالي المصروفات', ic:'receipt' },
+      { key:'remaining', label:'إجمالي المتبقي', ic:'money', accent:'rem' },
+    ] },
   receipt: { title:'سند قبض', theme:'receipt', layout:'receipt', sumKey:'amount', sumLabel:'قيمة السند', initial:1 },
   letter: { title:'خطابات مجمع الهاشمي', theme:'letter', layout:'letter', sumKey:'amount', initial:0 },
 };
@@ -170,20 +189,28 @@ function renderList(invoices){
   }
   const cards = invoices.map(inv => {
     const cfg = TYPES[inv.type] || {};
-    const isRev = !!cfg.multiSum && inv.type === 'rev';
-    const stats = isRev
-      ? `<span>عدد البنود: <b>${inv.count}</b></span>
+    const breakdown = inv.type === 'rev' || inv.type === 'incexp';
+    let stats;
+    if(inv.type === 'rev'){
+      stats = `<span>عدد البنود: <b>${inv.count}</b></span>
          <span>إجمالي الإيجارات: <b>${fmtMoney(inv.rentTotal||0)}</b></span>
          <span>إجمالي المُحصّل: <b>${fmtMoney(inv.collectedTotal||0)}</b></span>
-         <span class="rem">إجمالي المتبقي: <b>${fmtMoney(inv.remainingTotal||0)}</b></span>`
-      : `<span>عدد البنود: <b>${inv.count}</b></span><span>الإجمالي: <b>${fmtMoney(inv.total)}</b></span>`;
+         <span class="rem">إجمالي المتبقي: <b>${fmtMoney(inv.remainingTotal||0)}</b></span>`;
+    } else if(inv.type === 'incexp'){
+      stats = `<span>عدد البنود: <b>${inv.count}</b></span>
+         <span>إجمالي الدخل: <b>${fmtMoney(inv.incomeTotal||0)}</b></span>
+         <span>إجمالي المصروفات: <b>${fmtMoney(inv.expenseTotal||0)}</b></span>
+         <span class="rem">إجمالي المتبقي: <b>${fmtMoney(inv.remainingTotal||0)}</b></span>`;
+    } else {
+      stats = `<span>عدد البنود: <b>${inv.count}</b></span><span>الإجمالي: <b>${fmtMoney(inv.total)}</b></span>`;
+    }
     return `<div class="inv-card ${cfg.theme}" data-open="${inv.id}">
       <div class="stripe"></div>
       <div class="body">
         <div class="card-top"><img src="${LOGO_SRC}" alt="" class="card-logo"><span class="kind-badge">${escapeHtml(cfg.title||inv.type)}</span></div>
         <h3>${escapeHtml(cfg.title||inv.type)}</h3>
         <div class="month">${MONTHS[inv.month]} ${inv.year}</div>
-        <div class="stats${isRev ? ' stats-rev' : ''}">${stats}
+        <div class="stats${breakdown ? ' stats-rev' : ''}">${stats}
           <span class="who">أنشأها: ${escapeHtml(inv.created_by||'')}</span></div>
       </div>
       <div class="row-actions"><button class="open" data-open="${inv.id}">فتح الفاتورة</button>
@@ -210,7 +237,7 @@ async function createInvoice(type){
 export async function openInvoice(id){
   let data;
   try { data = await api.get('/api/invoices/'+id); } catch { return showList(); }
-  current = { invoice: normalizeInvoice(data.invoice), rows: data.rows, extra: 0 };
+  current = { invoice: normalizeInvoice(data.invoice), rows: data.rows, extra: 0, extraSec: {} };
   renderInvoice();
   window.scrollTo(0,0);
 }
@@ -237,6 +264,13 @@ function renderInvoice(){
     h += renderReceipt(inv);
   } else if(cfg.layout === 'letter'){
     h += renderLetter(inv);
+  } else if(cfg.sections){
+    h += renderSheetHeader(inv, cfg);
+    cfg.sections.forEach(sec => {
+      h += `<div class="section-tab ${cfg.theme}">${sec.ic && ICONS[sec.ic] ? `<span class="tab-ic">${ICONS[sec.ic]}</span>` : ''}${sec.ribbon}</div>`;
+      h += renderTable(inv, cfg, sec);
+    });
+    h += renderLedgerFooter(cfg);
   } else {
     h += renderSheetHeader(inv, cfg);
     h += renderTable(inv, cfg);
@@ -285,14 +319,21 @@ function renderSheetHeader(inv, cfg){
     <div class="ornament-line ${cfg.theme}"><span></span></div>
     ${cfg.section ? `<div class="section-ribbon ${cfg.theme}">${cfg.sectionNo}. ${escapeHtml(cfg.section)}</div>` : ''}`;
 }
-function renderTable(inv, cfg){
-  const maxPos = current.rows.reduce((m,r)=>Math.max(m,r.position+1), 0);
-  const shown = Math.max(cfg.initial, maxPos, current.extra);
-  let h = `<div class="table-shell ${cfg.theme}"><table class="grid ${cfg.theme}"><thead><tr><th class="meem">م</th>${cfg.cols.map(c=>`<th><span class="th-lbl">${c.label}</span>${c.ic && ICONS[c.ic] ? `<span class="th-ic">${ICONS[c.ic]}</span>` : ''}</th>`).join('')}</tr></thead><tbody>`;
+function renderTable(inv, cfg, section){
+  const cols = section ? section.cols : cfg.cols;
+  const offset = section ? section.offset : 0;
+  const initial = section ? (section.initial ?? cfg.initial) : cfg.initial;
+  const secKey = section ? section.key : '';
+  const inRange = p => !section || (p >= offset && p < offset + SECTION_BLOCK);
+  const maxLocal = current.rows.reduce((m,r)=> inRange(r.position) ? Math.max(m, (r.position - offset) + 1) : m, 0);
+  const extra = section ? (current.extraSec?.[secKey] || 0) : current.extra;
+  const shown = Math.max(initial, maxLocal, extra);
+  let h = `<div class="table-shell ${cfg.theme}"><table class="grid ${cfg.theme}"${secKey ? ` data-section="${secKey}"` : ''}><thead><tr><th class="meem">م</th>${cols.map(c=>`<th><span class="th-lbl">${c.label}</span>${c.ic && ICONS[c.ic] ? `<span class="th-ic">${ICONS[c.ic]}</span>` : ''}</th>`).join('')}</tr></thead><tbody>`;
   for(let i=0;i<shown;i++){
-    const r = rowAtPos(i), data = r?.data || {};
-    h += `<tr data-pos="${i}"${r?` data-rowid="${r.id}"`:''}><td class="meem">${i+1}${r?`<button class="row-del" data-delrow="${r.id}" title="حذف البند">×</button>`:''}</td>`;
-    cfg.cols.forEach(c=>{
+    const pos = offset + i;
+    const r = rowAtPos(pos), data = r?.data || {};
+    h += `<tr data-pos="${pos}"${r?` data-rowid="${r.id}"`:''}><td class="meem">${i+1}${r?`<button class="row-del" data-delrow="${r.id}" title="حذف البند">×</button>`:''}</td>`;
+    cols.forEach(c=>{
       const val = c.computed ? c.computed(data) : (data[c.key] || '');
       const disp = displayValue(c.type, val, c.showZero);
       if(c.computed){
@@ -303,7 +344,7 @@ function renderTable(inv, cfg){
     });
     h += `</tr>`;
   }
-  h += `</tbody></table></div><button type="button" class="add-row-btn" data-action="add-row"><span style="font-size:16px">+</span> إضافة بند جديد</button>`;
+  h += `</tbody></table></div><button type="button" class="add-row-btn" data-action="add-row"${secKey ? ` data-section="${secKey}"` : ''}><span style="font-size:16px">+</span> إضافة بند جديد</button>`;
   return h;
 }
 function renderTotal(cfg){
@@ -324,6 +365,20 @@ function renderMultiSum(cfg){
         <span class="summary-value" data-sum="${s.key}"></span>
       </div>`).join('')}
     </div>
+  </div>`;
+}
+// تذييل فاتورة «الدخل والمصروفات»: صندوق الإجماليات (يسار) + صندوق التواقيع (يمين) كما في الصورة
+function renderLedgerFooter(cfg){
+  const totals = cfg.combinedSum.map(s => `<div class="lt-row${s.accent === 'rem' ? ' rem' : ''}">
+        ${s.ic && ICONS[s.ic] ? `<span class="lt-ic">${ICONS[s.ic]}</span>` : ''}
+        <span class="lt-label">${s.label}</span><span class="lt-colon">:</span>
+        <span class="lt-value" data-sum="${s.key}"></span>
+      </div>`).join('');
+  const slots = [['accountant','توقيع المحاسب'],['management','اعتماد الإدارة'],['official','توقيع المسؤول']];
+  const signs = slots.map(([slot,label]) => renderSignatureSlot(slot, label)).join('');
+  return `<div class="ledger-foot ${cfg.theme}">
+    <div class="ledger-signs"><div class="signature-slots ledger">${signs}</div></div>
+    <div class="ledger-totals">${totals}</div>
   </div>`;
 }
 function renderSignatureFooter(kind){
@@ -423,12 +478,36 @@ function sumRevenue(rows){
   }
   return { rent, paid, remaining };
 }
+// أي قسم ينتمي إليه موضع الصف (الدخل=0.. / المصروفات=1000..)
+function sectionForPos(cfg, pos){ return cfg.sections?.find(s => pos >= s.offset && pos < s.offset + SECTION_BLOCK); }
+// مجاميع «الدخل والمصروفات»: إجمالي كل قسم + المتبقي = الدخل − المصروفات
+function sumSections(cfg){
+  const res = {};
+  cfg.sections.forEach(sec => {
+    let s = 0;
+    for(const r of current.rows){
+      if(r.position >= sec.offset && r.position < sec.offset + SECTION_BLOCK) s += toNum(r.data?.[sec.sumKey]);
+    }
+    res[sec.key] = s;
+  });
+  const [a, b] = cfg.sections;
+  res.remaining = (res[a.key] || 0) - (res[b.key] || 0);
+  return res;
+}
 function updateTotal(){
   if(!current) return;
   const cfg = TYPES[current.invoice.type];
   if(cfg.multiSum){
     const totals = sumRevenue(current.rows);
     cfg.multiSum.forEach(s => {
+      const el = appMain().querySelector(`[data-sum="${s.key}"]`);
+      if(el) el.textContent = fmtMoney(totals[s.key]);
+    });
+    return;
+  }
+  if(cfg.sections){
+    const totals = sumSections(cfg);
+    cfg.combinedSum.forEach(s => {
       const el = appMain().querySelector(`[data-sum="${s.key}"]`);
       if(el) el.textContent = fmtMoney(totals[s.key]);
     });
@@ -454,11 +533,12 @@ function onMainClick(e){
   if(methodBtn){ e.stopPropagation(); setReceiptMethod(methodBtn.dataset.receiptMethod); return; }
   const sigBtn = e.target.closest('[data-signature-slot]');
   if(sigBtn){ e.stopPropagation(); openSignature(sigBtn.dataset.signatureSlot, sigBtn.dataset.signatureLabel); return; }
-  const action = e.target.closest('[data-action]')?.getAttribute('data-action');
+  const actionEl = e.target.closest('[data-action]');
+  const action = actionEl?.getAttribute('data-action');
   if(action==='back') return showList();
   if(action==='print') return window.print();
   if(action==='delete-invoice') return deleteInvoice(current.invoice.id);
-  if(action==='add-row') return addRow();
+  if(action==='add-row') return addRow(actionEl?.dataset.section || '');
   const openId = e.target.closest('[data-open]')?.getAttribute('data-open');
   if(openId){ openInvoice(openId); return; }
 }
@@ -537,7 +617,8 @@ async function onCellBlur(e){
   const tr = td.closest('tr'); const pos = +tr.dataset.pos;
   const cfg = TYPES[current.invoice.type];
   const data = rowDataFromTr(tr);
-  const hasDate = cfg.cols.some(c=>c.key==='date');
+  const activeCols = cfg.sections ? (sectionForPos(cfg, pos)?.cols || []) : (cfg.cols || []);
+  const hasDate = activeCols.some(c=>c.key==='date');
   if(hasDate && !isEmptyData(data) && !data.date) data.date = todayISO();
 
   td.textContent = displayValue(td.dataset.type, cleanValue(td.dataset.type, td.textContent));
@@ -596,13 +677,20 @@ function onBeforeInput(e){
 }
 
 /* ---------- إضافة بند ---------- */
-function addRow(){
-  const tbody = appMain().querySelector('tbody');
+function addRow(sectionKey){
+  const tableSel = sectionKey ? `table[data-section="${sectionKey}"]` : 'table.grid';
+  const tbody = appMain().querySelector(`${tableSel} tbody`);
   if(!tbody) return;
   const rows = [...tbody.querySelectorAll('tr')];
   let target = rows.find(tr => [...tr.querySelectorAll('td.edit')].every(c=>!c.textContent.trim()) && !tr.classList.contains('reveal'));
   if(target){ target.classList.add('reveal'); }
-  else { current.extra = rows.length + 1; renderInvoice(); const all = appMain().querySelectorAll('tbody tr'); target = all[all.length-1]; target.classList.add('reveal'); }
+  else {
+    if(sectionKey) current.extraSec[sectionKey] = rows.length + 1;
+    else current.extra = rows.length + 1;
+    renderInvoice();
+    const all = appMain().querySelectorAll(`${tableSel} tbody tr`);
+    target = all[all.length-1]; target.classList.add('reveal');
+  }
   const first = target.querySelector('td.edit');
   if(first){ first.scrollIntoView({behavior:'smooth',block:'center'}); first.focus(); }
 }

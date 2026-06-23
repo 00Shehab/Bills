@@ -272,32 +272,9 @@ select { font-family: inherit; padding: 8px 10px; border: 1px solid #cfcfd4; bor
   body { background: #fff; }
   .topbar, .invoice-toolbar, .modal-overlay, .toast, .add-row-btn, .signature-view, .row-del { display: none !important; }
   .invoice-view { margin: 0; padding: 0; max-width: none; }
-  .sheet { box-shadow: none; border-radius: 0; padding: 8mm 9mm; }
-  .sheet-accent { display: none !important; }            /* امنع الزخرفة المطلقة من «الطيران» عند الطباعة */
   .grid tbody tr { display: table-row !important; }       /* أظهر كل الصفوف */
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-
-  /* مقاس A4 حسب الاتجاه الذي يحدّده JS تلقائيًا — وحدات mm فيزيائية لثبات النتيجة عبر الأجهزة (iPhone/Android/PC) */
-  html.print-portrait  .sheet { width: 186mm; }   /* 210 − 2×12mm */
-  html.print-landscape .sheet { width: 277mm; }   /* 297 − 2×10mm */
-
-  /* أحجام الخطوط بـ pt للوضوح والاتساق على الورق */
-  .sheet-heading h1 { font-size: 15pt; }
-  .sheet-heading p  { font-size: 9pt; }
-  .section-tab { font-size: 11pt; padding: 5pt 16pt; box-shadow: none; }
-  .grid { font-size: 9.5pt; }
-  .grid th { padding: 5pt 4pt; }
-  .grid td { padding: 4pt 6pt; }
-  .lt-row { font-size: 9.5pt; }
-  .summary-label, .summary-value { font-size: 11pt; }
-  .signature-caption { font-size: 9pt; }
-  .signature-line { height: 32pt; }
-
-  /* التذييل المجمّع لـ«الدخل والمصروفات» يبقى جنبًا لجنب (تخطيط الكمبيوتر) على الورق */
-  .ledger-foot { display: flex !important; flex-direction: row !important; gap: 6mm; margin-top: 6mm; }
-  .ledger-foot, .summary-area, .signature-slots { break-inside: avoid; }
-
-  @page { size: A4; margin: 12mm; }   /* احتياطي إن لم يُحقن اتجاه من JS */
+  /* بقية تجاوزات الطباعة (المقاس/الخطوط/التذييل) في آخر الملف لتكسب بترتيب المصدر */
 }
 
 /* ===================== المصادقة (دخول + اختيار هوية) ===================== */
@@ -905,6 +882,8 @@ select {
   background: #fff;
 }
 .ledger-signs .signature-slots { width: 100%; margin: 0; padding: 0; gap: 16px; justify-content: space-between; }
+/* داخل صندوق التواقيع نُلغي العرض الأدنى للخانة حتى لا تفيض وتدفع صندوق الإجماليات خارج الورقة */
+.ledger-signs .signature-slot { min-width: 0; max-width: none; }
 .ledger-totals {
   flex: 1;
   display: flex;
@@ -1416,13 +1395,53 @@ body.signature-active { overflow:hidden; }
   .meta-pick select { flex:1; min-width:0; }
 }
 
+/* ===== الطباعة: التجاوزات النهائية — يجب أن تبقى آخر الملف لتكسب بترتيب المصدر ===== */
 @media print {
-  body { background:#fff; }
-  .topbar, .invoice-toolbar, .modal-overlay, .toast, .add-row-btn, .signature-view { display:none !important; }
+  /* الورقة بمقاس A4 فعلي حسب الاتجاه الذي يحقنه JS (mm فيزيائية لثبات النتيجة عبر الأجهزة) */
   .sheet {
-    box-shadow:none;
-    border-radius:0;
-    border:1.5px solid var(--brand-green);
+    box-shadow: none !important;
+    border: 1.2pt solid var(--brand-green) !important;
+    border-radius: 0 !important;
+    padding: 7mm 8mm !important;
+    margin: 0 auto !important;
   }
-  .receipt-page { min-height: 690px; }
+  html.print-portrait  .sheet { width: 186mm !important; }   /* 210 − 2×12mm */
+  html.print-landscape .sheet { width: 277mm !important; }   /* 297 − 2×10mm */
+  .sheet-accent { display: none !important; }                /* امنع الزخرفة المطلقة من «الطيران» */
+
+  /* ترويسة مدمجة حتى لا تستهلك الصفحة */
+  .sheet-letterhead { min-height: 0 !important; padding: 0 0 3mm !important; gap: 5mm !important; }
+  .sheet-logo-img { width: 22mm !important; height: auto !important; }
+  .sheet-heading h1 { font-size: 13pt !important; line-height: 1.3 !important; margin: 0 !important; }
+  .sheet-heading p { font-size: 8.5pt !important; margin: 1mm 0 0 !important; }
+  .ornament-line { margin: 0 0 3mm !important; }
+  .section-ribbon { font-size: 11pt !important; padding: 4pt 14pt !important; }
+  .section-tab { font-size: 11pt !important; padding: 4pt 16pt !important; box-shadow: none !important; margin: 2mm auto 3mm !important; }
+
+  /* صفوف مدمجة: ألغِ الارتفاع الثابت 54px وصغّر الخط/الحشو لتدخل الصفحة الواحدة */
+  .grid { font-size: 9pt !important; }
+  .grid th, .grid td { height: auto !important; padding: 2.6pt 4pt !important; font-size: 9pt !important; line-height: 1.3 !important; }
+  .grid thead th { font-size: 9pt !important; }
+  .grid td.meem, .grid th.meem { font-size: 8.5pt !important; width: 9mm !important; }
+  .grid td.edit { min-height: 0 !important; line-height: 1.3 !important; }
+  .table-shell { margin-bottom: 3mm !important; }
+
+  /* التذييل المجمّع لـ«الدخل والمصروفات»: تخطيط جدولي مضمون لا يفيض (آمن على iOS) */
+  .ledger-foot { display: table !important; width: 100% !important; table-layout: fixed !important;
+                 border-collapse: separate !important; border-spacing: 5mm 0 !important; margin-top: 4mm !important; padding-top: 0 !important; border-top: 0 !important; }
+  .ledger-signs, .ledger-totals { display: table-cell !important; vertical-align: top !important; box-shadow: none !important; }
+  .ledger-signs { width: 55% !important; }
+  .ledger-totals { width: 45% !important; }
+  .ledger-signs .signature-slots { display: flex !important; gap: 3mm !important; }
+  .ledger-signs .signature-slot { min-width: 0 !important; }
+  .ledger-totals .lt-row { font-size: 9.5pt !important; }
+  .ledger-totals .lt-row + .lt-row { margin-top: 2.5mm !important; }
+  .signature-caption { font-size: 9pt !important; }
+  .signature-line { height: 30pt !important; }
+
+  /* الإجمالي الثلاثي للإيرادات */
+  .summary-label, .summary-value { font-size: 11pt !important; }
+
+  .ledger-foot, .summary-area, .signature-slots, .table-shell { break-inside: avoid; }
+  .receipt-page { min-height: 0 !important; }
 }

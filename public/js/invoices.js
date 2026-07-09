@@ -6,6 +6,7 @@ export const MONTHS = ['يناير','فبراير','مارس','أبريل','ما
                        'أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 
 const LOGO_SRC = 'assets/alhashmi-logo.svg';
+const APP_TITLE = 'نظام المحطة المالي';   // عنوان الصفحة الافتراضي (مأخوذ من الكود الأول لضبط اسم الـ PDF)
 
 // أيقونات رؤوس أعمدة الإيرادات (مثل الصورة)
 const ICONS = {
@@ -170,9 +171,6 @@ export async function initInvoices(){
   document.addEventListener('keydown', e => {
     if(e.key === 'Enter' && e.target.closest?.('[contenteditable="true"]')){ e.preventDefault(); e.target.blur(); }
   });
-  // الطباعة: اضبط الاتجاه/المقاس تلقائيًا قبل الطباعة (يشمل زر «طباعة» و Ctrl/Cmd+P)، وأعِد العنوان بعدها
-  window.addEventListener('beforeprint', applyPrintSetup);
-  window.addEventListener('afterprint', () => { document.title = ORIGINAL_TITLE; });
   await showList();
 }
 
@@ -288,18 +286,21 @@ function renderInvoice(){
   appMain().querySelectorAll('[data-meta="month"]').forEach(el => el.addEventListener('change', e => changeMeta('month', +e.target.value)));
   appMain().querySelectorAll('[data-meta="year"]').forEach(el => el.addEventListener('change', e => changeMeta('year', +e.target.value)));
 }
+
+// تم دمج أزرار الطباعة من الكود الأول ضمن الـ Toolbar
 function renderToolbar(inv){
   return `<div class="invoice-toolbar">
-    <button class="btn-ghost" data-action="back">→ رجوع للقائمة</button>
+    <button type="button" class="btn-ghost" data-action="back">→ رجوع للقائمة</button>
     <div class="invoice-meta">
       <label class="meta-pick">الشهر:
         <select data-meta="month">${MONTHS.map((m,i)=>`<option value="${i}" ${i===inv.month?'selected':''}>${m}</option>`).join('')}</select>
         <select data-meta="year">${yearOptions(inv.year)}</select>
       </label>
-      <button class="btn-ghost" data-action="print">طباعة</button>
-      <button class="btn-danger" data-action="delete-invoice">حذف الفاتورة</button>
+      <button type="button" class="btn-primary btn-print" data-action="print">🖨️ طباعة / حفظ PDF</button>
+      <button type="button" class="btn-danger" data-action="delete-invoice">حذف الفاتورة</button>
     </div></div>`;
 }
+
 function renderSheetHeader(inv, cfg){
   const month = MONTHS[inv.month];
   const fill = s => String(s).replace(/\{month\}/g, month).replace(/\{year\}/g, inv.year);
@@ -322,6 +323,7 @@ function renderSheetHeader(inv, cfg){
     <div class="ornament-line ${cfg.theme}"><span></span></div>
     ${cfg.section ? `<div class="section-ribbon ${cfg.theme}">${cfg.sectionNo}. ${escapeHtml(cfg.section)}</div>` : ''}`;
 }
+
 function renderTable(inv, cfg, section){
   const cols = section ? section.cols : cfg.cols;
   const offset = section ? section.offset : 0;
@@ -520,31 +522,53 @@ function updateTotal(){
   const el = $('#invTotal'); if(el) el.textContent = fmtMoney(total);
 }
 
-/* ---------- الطباعة / حفظ PDF (مقاس A4 تلقائي + تخطيط الكمبيوتر دائمًا) ---------- */
-const ORIGINAL_TITLE = (typeof document !== 'undefined' && document.title) || 'نظام المحطة المالي';
+/* ---------- الطباعة / حفظ PDF (مدمجة من الكود الأول المحسن) ---------- */
+function pdfFileName(){
+  const inv = current?.invoice; if(!inv) return 'فاتورة';
+  const cfg = TYPES[inv.type] || {};
+  const base = cfg.title || inv.type;
+  return (inv.month != null && inv.year)
+    ? `${base} - ${MONTHS[inv.month]} ${inv.year}`
+    : base;
+}
 function maxColsOf(cfg){
   if(cfg.sections) return Math.max(...cfg.sections.map(s => s.cols.length));
   return cfg.cols?.length || 0;
 }
-// «Auto»: يصنّف اتجاه/مقاس الورقة من نفسه حسب المحتوى — الجداول العريضة أفقي، والضيّقة/الطويلة عمودي
 function printOrientation(cfg){
   if(cfg.printOrient) return cfg.printOrient;
   if(cfg.layout === 'receipt' || cfg.layout === 'letter') return 'portrait';
   return maxColsOf(cfg) >= 6 ? 'landscape' : 'portrait';
 }
-function applyPrintSetup(){
-  if(!current) return;
-  const cfg = TYPES[current.invoice.type] || {};
-  if(document.activeElement?.blur) document.activeElement.blur();   // ثبّت/نسّق آخر خلية قبل الطباعة
+function applyPrintOrientation(){
+  const cfg = TYPES[current?.invoice?.type] || {};
   const orient = printOrientation(cfg);
-  const html = document.documentElement;
-  html.classList.toggle('print-portrait', orient === 'portrait');
-  html.classList.toggle('print-landscape', orient === 'landscape');
-  const margin = orient === 'landscape' ? 10 : 12;                  // mm — يطابق عرض الورقة في CSS
+  const portrait = orient === 'portrait';
+  // الهامش هنا يطابق حسابات العرض بالمليمتر في الكود الأول 
+  const margin = portrait ? '12mm' : '10mm';
+  
   let st = document.getElementById('printPageStyle');
   if(!st){ st = document.createElement('style'); st.id = 'printPageStyle'; document.head.appendChild(st); }
-  st.textContent = `@page { size: A4 ${orient}; margin: ${margin}mm; }`;
-  document.title = `${cfg.title || current.invoice.type} - ${MONTHS[current.invoice.month]} ${current.invoice.year}`;
+  st.textContent = `@page { size: A4 ${orient}; margin: ${margin}; }`;
+  document.documentElement.classList.toggle('print-portrait', portrait);
+  document.documentElement.classList.toggle('print-landscape', !portrait);
+}
+function printInvoice(){
+  if(getView() !== 'invoice') return;
+  // ثبّت أي خلية قيد التعديل قبل الطباعة (تجنّب فقدان آخر تعديل أو ظهور مؤشّر الكتابة)
+  const ae = document.activeElement;
+  if(ae && typeof ae.blur === 'function' && (ae.isContentEditable || ae.tagName === 'INPUT')) ae.blur();
+  applyPrintOrientation();
+  // اسم ملف الـ PDF المقترح = عنوان الفاتورة الحالية. نضبطه قبل الطباعة مباشرة.
+  document.title = pdfFileName();
+  window.addEventListener('afterprint', () => { document.title = APP_TITLE; }, { once: true });
+  try {
+    if(typeof window.print === 'function') window.print();
+    else throw new Error('no-print');
+  } catch {
+    document.title = APP_TITLE;
+    toast('لإتمام الطباعة: افتح الصفحة في Safari ثم زر المشاركة ⬆️ واختر «طباعة»');
+  }
 }
 
 async function changeMeta(field, val){
@@ -566,7 +590,7 @@ function onMainClick(e){
   const actionEl = e.target.closest('[data-action]');
   const action = actionEl?.getAttribute('data-action');
   if(action==='back') return showList();
-  if(action==='print') return window.print();
+  if(action==='print') return printInvoice();  // استدعاء دالة الطباعة المحسنة المدمجة
   if(action==='delete-invoice') return deleteInvoice(current.invoice.id);
   if(action==='add-row') return addRow(actionEl?.dataset.section || '');
   const openId = e.target.closest('[data-open]')?.getAttribute('data-open');

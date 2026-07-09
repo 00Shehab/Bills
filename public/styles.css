@@ -268,13 +268,138 @@ select { font-family: inherit; padding: 8px 10px; border: 1px solid #cfcfd4; bor
 }
 
 /* ===================== الطباعة / حفظ PDF ===================== */
+/* الهدف: طباعة متطابقة تمامًا على كل الأجهزة (أيفون/جالكسي/شاومي/كمبيوتر)
+   على ورق A4 كامل، بخط كبير واضح، بنفس تصميم الكمبيوتر.
+
+   لماذا تختلف الطباعة بين الأجهزة؟
+   - أيفون (Safari) يتجاهل أحجام px ويملأ عرض الورقة (فيكبّر/يصغّر النص)،
+     لكنه يحترم الوحدات الفيزيائية (pt / mm).
+   - أندرويد (Chrome على شاومي/جالكسي) «يصغّر ليلائم» حسب عرض الشاشة.
+   الحل: عرض الورقة مثبّت بالمليمتر = مساحة الطباعة الفعلية،
+   وكل الخطوط بوحدة pt، وإلغاء أي تموضع مطلق/تحويلات/وحدات vw.
+   اتجاه الورقة (أفقي/عمودي) يُحقن من JS حسب نوع الفاتورة. */
+@page { size: A4 landscape; margin: 10mm; }
+
 @media print {
-  body { background: #fff; }
-  .topbar, .invoice-toolbar, .modal-overlay, .toast, .add-row-btn, .signature-view, .row-del { display: none !important; }
-  .invoice-view { margin: 0; padding: 0; max-width: none; }
-  .grid tbody tr { display: table-row !important; }       /* أظهر كل الصفوف */
-  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  /* بقية تجاوزات الطباعة (المقاس/الخطوط/التذييل) في آخر الملف لتكسب بترتيب المصدر */
+  html, body {
+    background: #fff !important;
+    margin: 0 !important; padding: 0 !important;
+    -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+    box-shadow: none !important; text-shadow: none !important;
+  }
+
+  /* إخفاء كل عناصر الواجهة عدا الورقة */
+  .topbar, .invoice-toolbar, .modal-overlay, .toast, .add-row-btn,
+  .signature-view, #loginView, #pickView, #adminView,
+  .row-del, .col-actions, .bell-wrap, .add-wrap { display: none !important; }
+
+  /* عرض الورقة مثبّت بالمليمتر = مساحة الطباعة (يمنع تصغير/تكبير الجوال) */
+  .invoice-view { max-width: none !important; width: auto !important; margin: 0 !important; padding: 0 !important; }
+  .sheet {
+    border: none !important; border-radius: 0 !important;
+    background: #fff !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+  }
+  html.print-landscape .sheet { width: 277mm !important; }   /* 297 − 2×10mm */
+  html.print-portrait  .sheet { width: 186mm !important; }   /* 210 − 2×12mm */
+
+  /* ترويسة ثابتة بلا تموضع مطلق (سبب «طيران الزينة» على الأيفون) */
+  .sheet-accent { display: none !important; }
+  .sheet-letterhead {
+    position: static !important;
+    display: flex !important; flex-direction: column !important; align-items: center !important;
+    min-height: 0 !important; padding: 0 !important; gap: 1.5mm !important; margin-bottom: 3mm !important;
+    text-align: center !important;
+  }
+  .sheet-brand { position: static !important; width: 26mm !important; margin: 0 auto !important; }
+  .sheet-logo-img { width: 100% !important; height: auto !important; }
+  .sheet-heading h1 { font-size: 16pt !important; line-height: 1.35 !important; margin: 0 !important; }
+  .sheet-heading p  { font-size: 10.5pt !important; margin: 1mm 0 0 !important; }
+  .sheet-letterhead.grn .sheet-heading h1 { font-size: 22pt !important; }
+  .ornament-line { margin: 0 0 3mm !important; }
+  .ornament-line span { width: 3mm !important; height: 3mm !important; }
+  .section-ribbon { font-size: 12pt !important; padding: 1.5mm 6mm !important; margin: 0 0 2.5mm auto !important; }
+
+  /* الجدول: تخطيط ثابت، خطوط pt كبيرة، حدود واضحة، تكرار الرأس، صفوف لا تنقسم */
+  .table-shell { border: none !important; border-radius: 0 !important; overflow: visible !important; background: transparent !important; }
+  table.grid { width: 100% !important; table-layout: fixed !important; border-collapse: collapse !important; margin: 0 !important; }
+  table.grid thead { display: table-header-group !important; }
+  table.grid tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+  .grid th, .grid td {
+    border: 0.25mm solid #7a7a7a !important;
+    height: auto !important;
+    padding: 1.6mm 1.2mm !important;
+    font-size: 10.5pt !important;
+    line-height: 1.3 !important;
+    color: #16271d !important;
+  }
+  .grid thead th {
+    font-size: 11pt !important;
+    color: #fff !important;
+    box-shadow: none !important;
+    border-color: #2a6a45 !important;
+  }
+  .grid thead th .th-ic { display: none !important; }   /* أيقونات الرأس تشوّش الطباعة الصغيرة */
+  .grid td.meem, .grid th.meem { width: 9mm !important; font-size: 10.5pt !important; }
+  .grid td.edit, .grid td.computed { line-height: 1.3 !important; }
+  .grid td.edit.autofill::after { content: none !important; }   /* لا نطبع علامة القلم */
+  .grid td.meem::before, .grid td.edit::before, .grid td.computed::before { content: none !important; }
+
+  /* اعرض أول 12 صفًا دائمًا + أي صف ممتلئ بعده، وأخفِ الصفوف الفارغة الزائدة
+     (تبقى الورقة صفحة واحدة بخط كبير واضح دون إهدار ورق؛ ولا تُفقد أي بيانات
+     لأن الصفوف الممتلئة تظهر دائمًا). الأجهزة القديمة بلا :has تعرض كل الصفوف. */
+  .grid tbody tr:nth-child(n+13):not(:has(td.edit:not(:empty))) { display: none !important; }
+
+  /* الإجماليات والتواقيع: لا تنقسم بين صفحتين */
+  .summary-area { margin-top: 4mm !important; padding-top: 2mm !important; page-break-inside: avoid !important; break-inside: avoid !important; }
+  .summary-box { min-width: 0 !important; width: auto !important; display: inline-flex !important; }
+  .summary-label { font-size: 11pt !important; min-height: 0 !important; padding: 2mm 6mm !important; }
+  .summary-ic { width: 7mm !important; height: 7mm !important; }
+  .summary-value { font-size: 12pt !important; min-width: 38mm !important; padding: 2mm 6mm !important; }
+  .summary-multi { gap: 5mm !important; width: 100% !important; }
+  .summary-multi .summary-cell { min-width: 0 !important; }
+  .summary-multi .summary-mlabel { font-size: 10pt !important; padding: 1.6mm 4mm !important; }
+  .summary-multi .summary-mvalue { font-size: 11.5pt !important; padding: 1.6mm 4mm !important; }
+  .signature-slots { gap: 10mm !important; margin-top: 8mm !important; page-break-inside: avoid !important; break-inside: avoid !important; }
+  .signature-slot { min-width: 0 !important; max-width: none !important; }
+  .signature-caption { font-size: 10pt !important; }
+  .signature-line { height: 14mm !important; }
+  .signature-word { font-size: 8.5pt !important; }
+
+  /* السندات والخطابات: عرض ثابت بالمليمتر، صفحة واحدة بلا قصّ */
+  .receipt-page, .letter-page {
+    max-width: none !important; min-height: 0 !important; margin: 0 auto !important;
+    box-shadow: none !important; outline: none !important;
+    page-break-inside: avoid !important; break-inside: avoid !important;
+  }
+  html.print-portrait .receipt-page, html.print-portrait .letter-page { width: 186mm !important; }
+  .receipt-paybox { page-break-inside: avoid !important; break-inside: avoid !important; }
+
+  /* خطاب الهاشمي: ضمان صفحة A4 واحدة بأحجام pt/mm ثابتة عبر الأجهزة،
+     مع إزالة خلفية الأسطر المتدرّجة (repeating-linear-gradient) التي
+     يصيّرها iOS/Safari مستطيلاتٍ سوداء عند الطباعة بسبب print-color-adjust:exact. */
+  .letter-page { padding: 7mm 9mm !important; }
+  .letter-frame { inset: 2mm !important; }
+  .letter-head { min-height: 30mm !important; margin-bottom: 1mm !important; }
+  .letter-logo { width: 24mm !important; }
+  .letter-logo img { height: 18mm !important; }
+  .letter-basmala { font-size: 12.5pt !important; padding-top: 1mm !important; }
+  .letter-fields { top: 10mm !important; gap: 1.2mm !important; font-size: 10pt !important; }
+  .letter-edit { min-width: 28mm !important; }
+  .letter-body {
+    background-image: none !important; background-color: #fff !important;
+    min-height: 0 !important; margin: 2mm 1mm !important; padding: 0 !important;
+    font-size: 10.5pt !important; line-height: 1.55 !important; color: #000 !important;
+    break-inside: avoid !important;
+  }
+  .letter-foot { padding-top: 1mm !important; gap: 1.5mm !important; }
+  .letter-admin { font-size: 10.5pt !important; }
+  .letter-sign-row { gap: 3mm !important; font-size: 10pt !important; min-width: 68mm !important; }
+  .letter-sign .signature-line { min-height: 9mm !important; }
 }
 
 /* ===================== المصادقة (دخول + اختيار هوية) ===================== */
